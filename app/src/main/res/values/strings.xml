@@ -1,0 +1,67 @@
+<resources>
+    <string name="app_name">Network Base</string>
+    
+    <!-- Navigation -->
+    <string name="nav_course">Курс</string>
+    <string name="nav_sandbox">Песочница</string>
+    <string name="nav_profile">Профиль</string>
+    
+    <!-- Course -->
+    <string name="course_progress">Ваш прогресс</string>
+    <string name="course_modules">Модули курса</string>
+    <string name="lessons">Уроки</string>
+    <string name="task">Практическое задание</string>
+    <string name="start_task">Начать задание</string>
+    <string name="continue_task">Продолжить</string>
+    
+    <!-- Task -->
+    <string name="task_objectives">Цели задания</string>
+    <string name="check_solution">Проверить решение</string>
+    <string name="reset">Сбросить</string>
+    <string name="hint">Подсказка</string>
+    
+    <!-- Devices -->
+    <string name="device_pc">Компьютер</string>
+    <string name="device_router">Роутер</string>
+    <string name="device_switch">Коммутатор</string>
+    <string name="device_server">Сервер</string>
+    <string name="device_hub">Хаб</string>
+    
+    <!-- Actions -->
+    <string name="add_device">Добавить устройство</string>
+    <string name="connect">Соединить</string>
+    <string name="delete">Удалить</string>
+    <string name="apply">Применить</string>
+    <string name="cancel">Отмена</string>
+    <string name="save">Сохранить</string>
+    <string name="load">Загрузить</string>
+    <string name="clear">Очистить</string>
+    
+    <!-- Profile -->
+    <string name="statistics">Статистика</string>
+    <string name="achievements">Достижения</string>
+    <string name="tasks_completed">Заданий выполнено</string>
+    <string name="xp_format">%d XP</string>
+    <string name="level_format">Уровень %d</string>
+    
+    <!-- Simulation -->
+    <string name="simulation_ping">Ping</string>
+    <string name="simulation_start">Запустить симуляцию</string>
+    <string name="console">Консоль</string>
+    
+    <!-- Validation -->
+    <string name="validation_success">Отлично! Задание выполнено!</string>
+    <string name="validation_partial">Частично выполнено: %d%%</string>
+    <string name="validation_failed">Есть ошибки. Проверьте подсказки.</string>
+    
+    <!-- Lesson -->
+    <string name="complete_lesson">Завершить урок</string>
+    <string name="lesson_completed">Урок завершён!</string>
+    
+    <!-- Device Properties -->
+    <string name="device_name">Имя устройства</string>
+    <string name="ip_address">IP-адрес</string>
+    <string name="subnet_mask">Маска подсети</string>
+    <string name="default_gateway">Шлюз по умолчанию</string>
+    <string name="mac_address">MAC-адрес</string>
+</resources>

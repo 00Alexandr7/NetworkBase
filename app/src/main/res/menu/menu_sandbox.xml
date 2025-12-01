@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_save"
+        android:icon="@drawable/ic_save"
+        android:title="Сохранить"
+        app:showAsAction="ifRoom"
+        app:iconTint="@color/white" />
+
+    <item
+        android:id="@+id/action_load"
+        android:icon="@drawable/ic_folder"
+        android:title="Загрузить"
+        app:showAsAction="ifRoom"
+        app:iconTint="@color/white" />
+
+    <item
+        android:id="@+id/action_clear"
+        android:icon="@drawable/ic_clear"
+        android:title="Очистить"
+        app:showAsAction="never" />
+
+</menu>
+

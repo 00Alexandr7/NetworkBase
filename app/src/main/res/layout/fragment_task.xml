@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_light">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:navigationIcon="@drawable/ic_back"
+            app:navigationIconTint="@color/white"
+            app:titleTextColor="@color/white"
+            tools:title="Задание"
+            app:menu="@menu/menu_task" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <!-- Canvas Area -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <com.example.network_base.ui.canvas.NetworkCanvasView
+                android:id="@+id/network_canvas"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <!-- Device Toolbar -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|center_horizontal"
+                android:layout_marginTop="8dp"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="4dp">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="4dp">
+
+                    <ImageButton
+                        android:id="@+id/button_add_pc"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_device_pc"
+                        android:contentDescription="Добавить ПК"
+                        app:tint="@color/device_pc" />
+
+                    <ImageButton
+                        android:id="@+id/button_add_switch"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_device_switch"
+                        android:contentDescription="Добавить коммутатор"
+                        app:tint="@color/device_switch" />
+
+                    <ImageButton
+                        android:id="@+id/button_add_router"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_device_router"
+                        android:contentDescription="Добавить роутер"
+                        app:tint="@color/device_router" />
+
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="32dp"
+                        android:layout_marginHorizontal="4dp"
+                        android:layout_gravity="center_vertical"
+                        android:background="@color/divider" />
+
+                    <ImageButton
+                        android:id="@+id/button_connect"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_connect"
+                        android:contentDescription="Соединить"
+                        app:tint="@color/text_secondary" />
+
+                    <ImageButton
+                        android:id="@+id/button_delete"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_delete"
+                        android:contentDescription="Удалить"
+                        app:tint="@color/error" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Simulation Controls -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="16dp"
+                app:cardCornerRadius="28dp"
+                app:cardElevation="6dp">
+
+                <ImageButton
+                    android:id="@+id/button_simulate"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:background="@color/primary"
+                    android:src="@drawable/ic_play"
+                    android:contentDescription="Запустить симуляцию"
+                    app:tint="@color/white" />
+
+            </com.google.android.material.card.MaterialCardView>
+
+        </FrameLayout>
+
+        <!-- Bottom Panel -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="8dp"
+            android:layout_marginTop="-16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- Task Objectives -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Цели задания"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary" />
+
+                    <ImageButton
+                        android:id="@+id/button_hint"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_help"
+                        android:contentDescription="Подсказка"
+                        app:tint="@color/secondary" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/container_objectives"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
+
+                <!-- Check Button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_check"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="Проверить решение"
+                    app:cornerRadius="8dp" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+
+    <!-- Device Properties Sheet -->
+    <include layout="@layout/sheet_device_properties" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
+

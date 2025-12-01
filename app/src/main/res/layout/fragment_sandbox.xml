@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_light">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="Песочница"
+            app:titleTextColor="@color/white"
+            app:menu="@menu/menu_sandbox" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <com.example.network_base.ui.canvas.NetworkCanvasView
+            android:id="@+id/network_canvas"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Device Toolbar -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="8dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="4dp">
+
+                <ImageButton
+                    android:id="@+id/button_add_pc"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_device_pc"
+                    android:contentDescription="Добавить ПК"
+                    app:tint="@color/device_pc" />
+
+                <ImageButton
+                    android:id="@+id/button_add_server"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_device_server"
+                    android:contentDescription="Добавить сервер"
+                    app:tint="@color/device_server" />
+
+                <ImageButton
+                    android:id="@+id/button_add_switch"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_device_switch"
+                    android:contentDescription="Добавить коммутатор"
+                    app:tint="@color/device_switch" />
+
+                <ImageButton
+                    android:id="@+id/button_add_router"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_device_router"
+                    android:contentDescription="Добавить роутер"
+                    app:tint="@color/device_router" />
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="32dp"
+                    android:layout_marginHorizontal="4dp"
+                    android:layout_gravity="center_vertical"
+                    android:background="@color/divider" />
+
+                <ImageButton
+                    android:id="@+id/button_connect"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_connect"
+                    android:contentDescription="Соединить"
+                    app:tint="@color/text_secondary" />
+
+                <ImageButton
+                    android:id="@+id/button_delete"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_delete"
+                    android:contentDescription="Удалить"
+                    app:tint="@color/error" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Simulation Controls -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="16dp"
+            android:orientation="vertical">
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/button_ping"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:src="@drawable/ic_ping"
+                android:contentDescription="Ping"
+                app:tint="@color/white"
+                app:fabSize="mini" />
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/button_simulate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_play"
+                android:contentDescription="Запустить симуляцию"
+                app:tint="@color/white" />
+
+        </LinearLayout>
+
+        <!-- Console Output -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_console"
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:layout_gravity="bottom"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="80dp"
+            android:visibility="gone"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/console_background">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="8dp"
+                    android:background="@color/console_header">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Консоль"
+                        android:textSize="12sp"
+                        android:textColor="@color/white" />
+
+                    <ImageButton
+                        android:id="@+id/button_close_console"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_close"
+                        app:tint="@color/white" />
+
+                </LinearLayout>
+
+                <ScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <TextView
+                        android:id="@+id/text_console"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="8dp"
+                        android:textSize="11sp"
+                        android:textColor="@color/console_text"
+                        android:fontFamily="monospace"
+                        tools:text="$ ping 192.168.1.20\nPING 192.168.1.20\n64 bytes from 192.168.1.20: seq=1 time=10ms" />
+
+                </ScrollView>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+    </FrameLayout>
+
+    <!-- Device Properties Sheet -->
+    <include layout="@layout/sheet_device_properties" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
+

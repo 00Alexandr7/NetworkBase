@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.Network_base" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="android:statusBarColor">@color/primary_dark</item>
+        <item name="android:windowBackground">@color/background_light</item>
+        
+        <!-- Toolbar -->
+        <item name="toolbarStyle">@style/Widget.NetworkBase.Toolbar</item>
+        
+        <!-- Bottom Navigation -->
+        <item name="bottomNavigationStyle">@style/Widget.NetworkBase.BottomNavigation</item>
+    </style>
+
+    <style name="Widget.NetworkBase.Toolbar" parent="Widget.Material3.Toolbar">
+        <item name="android:background">@color/primary</item>
+        <item name="titleTextColor">@color/white</item>
+    </style>
+
+    <style name="Widget.NetworkBase.BottomNavigation" parent="Widget.Material3.BottomNavigationView">
+        <item name="backgroundTint">@color/white</item>
+        <item name="itemIconTint">@color/bottom_nav_color</item>
+        <item name="itemTextColor">@color/bottom_nav_color</item>
+    </style>
+
+</resources>

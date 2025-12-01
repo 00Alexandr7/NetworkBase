@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <item
+        android:id="@+id/courseListFragment"
+        android:icon="@drawable/ic_course"
+        android:title="Курс" />
+    
+    <item
+        android:id="@+id/sandboxFragment"
+        android:icon="@drawable/ic_sandbox"
+        android:title="Песочница" />
+    
+    <item
+        android:id="@+id/profileFragment"
+        android:icon="@drawable/ic_profile"
+        android:title="Профиль" />
+
+</menu>
+

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/courseListFragment">
+
+    <!-- Course List -->
+    <fragment
+        android:id="@+id/courseListFragment"
+        android:name="com.example.network_base.ui.course.CourseListFragment"
+        android:label="Курс"
+        tools:layout="@layout/fragment_course_list">
+        
+        <action
+            android:id="@+id/action_courseList_to_moduleDetail"
+            app:destination="@id/moduleDetailFragment" />
+    </fragment>
+
+    <!-- Module Detail -->
+    <fragment
+        android:id="@+id/moduleDetailFragment"
+        android:name="com.example.network_base.ui.course.ModuleDetailFragment"
+        android:label="Модуль"
+        tools:layout="@layout/fragment_module_detail">
+        
+        <argument
+            android:name="moduleId"
+            app:argType="string" />
+            
+        <action
+            android:id="@+id/action_moduleDetail_to_lesson"
+            app:destination="@id/lessonFragment" />
+            
+        <action
+            android:id="@+id/action_moduleDetail_to_task"
+            app:destination="@id/taskFragment" />
+    </fragment>
+
+    <!-- Lesson -->
+    <fragment
+        android:id="@+id/lessonFragment"
+        android:name="com.example.network_base.ui.course.LessonFragment"
+        android:label="Урок"
+        tools:layout="@layout/fragment_lesson">
+        
+        <argument
+            android:name="lessonId"
+            app:argType="string" />
+    </fragment>
+
+    <!-- Task -->
+    <fragment
+        android:id="@+id/taskFragment"
+        android:name="com.example.network_base.ui.course.TaskFragment"
+        android:label="Задание"
+        tools:layout="@layout/fragment_task">
+        
+        <argument
+            android:name="taskId"
+            app:argType="string" />
+    </fragment>
+
+    <!-- Sandbox -->
+    <fragment
+        android:id="@+id/sandboxFragment"
+        android:name="com.example.network_base.ui.sandbox.SandboxFragment"
+        android:label="Песочница"
+        tools:layout="@layout/fragment_sandbox" />
+
+    <!-- Profile -->
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.example.network_base.ui.profile.ProfileFragment"
+        android:label="Профиль"
+        tools:layout="@layout/fragment_profile" />
+
+</navigation>
+
