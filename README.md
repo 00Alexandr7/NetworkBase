@@ -108,6 +108,9 @@ users
 - currentModuleId: String (может быть null)
 - createdAt: Timestamp
 
+### ER-Диаграмма
+<img width="970" height="1182" alt="image" src="https://github.com/user-attachments/assets/2f8393d1-8094-4001-b19a-86eb51e1c5dd" />
+
 ## Запуск проекта
 
 ### Требования
@@ -116,9 +119,6 @@ users
 - Android SDK:
   - `minSdk = 24`
   - `targetSdk = 35`
-
-### ER-Диаграмма
-<img width="970" height="1182" alt="image" src="https://github.com/user-attachments/assets/2f8393d1-8094-4001-b19a-86eb51e1c5dd" />
 
 ### Настройка Firebase
 
