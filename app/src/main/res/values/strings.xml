@@ -64,4 +64,45 @@
     <string name="subnet_mask">Маска подсети</string>
     <string name="default_gateway">Шлюз по умолчанию</string>
     <string name="mac_address">MAC-адрес</string>
+
+    <!-- Auth -->
+    <string name="auth_login_title">Вход в аккаунт</string>
+    <string name="auth_register_title">Создать аккаунт</string>
+    <string name="auth_name_label">Имя</string>
+    <string name="auth_email_label">Почта</string>
+    <string name="auth_password_label">Пароль</string>
+    <string name="auth_confirm_password_label">Повторите пароль</string>
+    <string name="auth_login_button">Войти</string>
+    <string name="auth_register_button">Зарегистрироваться</string>
+    <string name="auth_logout_button">Выйти из аккаунта</string>
+    <string name="auth_google_button">Продолжить через Google</string>
+    <string name="auth_guest_keep">Остаться гостем</string>
+    <string name="auth_guest_transfer_title">Перенести прогресс?</string>
+    <string name="auth_guest_transfer_body">Мы сохраним ваши уроки и XP в аккаунт.</string>
+    <string name="auth_guest_transfer_yes">Перенести</string>
+    <string name="auth_guest_transfer_no">Начать с нуля</string>
+    <string name="auth_go_register">Нет аккаунта? Зарегистрироваться</string>
+    <string name="auth_go_login">Уже есть аккаунт? Войти</string>
+    <string name="auth_admin_login">Вход для администратора</string>
+    <string name="auth_email_mask_hint">Шаблон: *@*.*</string>
+
+    <!-- Validation -->
+    <string name="validation_required">Заполните поле</string>
+    <string name="validation_name_length">Имя от 2 до 30 символов</string>
+    <string name="validation_email_format">Неверный формат почты</string>
+    <string name="validation_password_rules">Пароль: минимум 6 символов, латиница и цифры</string>
+    <string name="validation_password_mismatch">Пароли не совпадают</string>
+    <string name="validation_email_exists">Почта уже занята</string>
+    <string name="validation_auth_failed">Не удалось выполнить запрос. Повторите.</string>
+    <string name="admin_menu_title">Админ-панель</string>
+    <string name="admin_add_task">Добавить задание</string>
+    <string name="admin_edit_task">Редактировать</string>
+    <string name="admin_task_title">Название</string>
+    <string name="admin_task_description">Описание</string>
+    <string name="admin_task_module">ID модуля</string>
+    <string name="admin_delete_confirm_title">Удалить задание?</string>
+    <string name="admin_delete_confirm_body">Удалить «%1$s»?</string>
+<!--    <string name="save">Сохранить</string>-->
+<!--    <string name="delete">Удалить</string>-->
+<!--    <string name="cancel">Отмена</string>-->
 </resources>

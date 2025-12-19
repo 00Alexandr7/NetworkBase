@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Text Colors -->
+    <color name="text_primary">#E6E6E6</color>
+    <color name="text_secondary">#B0B0B0</color>
+    <color name="text_hint">#808080</color>
+
+    <!-- Background Colors -->
+    <color name="background_light">#121212</color>
+    <color name="background_dark">#121212</color>
+    <color name="background_card">#1E1E1E</color>
+    <color name="divider">#2A2A2A</color>
+
+    <!-- Bottom Nav -->
+    <color name="white">#121212</color>
+</resources>

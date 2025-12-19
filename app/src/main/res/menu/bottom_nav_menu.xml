@@ -16,5 +16,10 @@
         android:icon="@drawable/ic_profile"
         android:title="Профиль" />
 
+    <item
+        android:id="@+id/adminPanelFragment"
+        android:icon="@drawable/ic_settings"
+        android:title="Админ" />
+
 </menu>
 
