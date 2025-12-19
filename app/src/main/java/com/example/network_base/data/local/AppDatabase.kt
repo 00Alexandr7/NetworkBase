@@ -17,7 +17,7 @@ import com.example.network_base.data.local.entities.*
         AchievementEntity::class,
         SavedTopologyEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

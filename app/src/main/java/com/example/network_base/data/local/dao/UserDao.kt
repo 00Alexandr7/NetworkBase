@@ -30,6 +30,9 @@ interface UserDao {
     
     @Query("UPDATE users SET currentModuleId = :moduleId WHERE id = :userId")
     suspend fun updateCurrentModule(userId: String, moduleId: String?)
+
+    @Query("UPDATE users SET role = :role WHERE id = :userId")
+    suspend fun updateRole(userId: String, role: String)
     
     @Delete
     suspend fun deleteUser(user: UserEntity)

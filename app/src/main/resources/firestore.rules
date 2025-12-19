@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Правила для коллекции пользователей
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Администраторы могут читать всех пользователей
+      allow read: if request.auth != null && 
+        request.auth.token.role == "admin";
+    }
+
+    // Правила для коллекции admin_tasks (только для администраторов)
+    match /admin_tasks/{taskId} {
+      allow read, write: if request.auth != null && 
+        request.auth.token.role == "admin";
+    }
+
+    // Правила для коллекции modules (только для администраторов)
+    match /modules/{moduleId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        request.auth.token.role == "admin";
+    }
+
+    // Правила для коллекции lessons (только для администраторов)
+    match /modules/{moduleId}/lessons/{lessonId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        request.auth.token.role == "admin";
+    }
+
+    // Правила для других коллекций
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

@@ -1,111 +1,80 @@
+
 package com.example.network_base.data.repository
 
 import com.example.network_base.data.local.dao.ProgressDao
 import com.example.network_base.data.local.entities.ProgressEntity
 import com.example.network_base.data.model.ModuleProgress
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 /**
- * Репозиторий для работы с прогрессом по курсу
+ * Репозиторий для отслеживания прогресса пользователя поверх Room.
+ * Используется как локальное хранилище, которое затем синхронизируется
+ * с Firestore через AuthRepository.
  */
 class ProgressRepository(
-    private val progressDao: ProgressDao
+    private val progressDao: ProgressDao,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
-    
+
     /**
-     * Получить весь прогресс
-     */
-    suspend fun getAllProgress(): List<ModuleProgress> {
-        return progressDao.getAllProgress().map { it.toModuleProgress() }
-    }
-    
-    /**
-     * Получить весь прогресс как Flow
+     * Поток прогресса по всем модулям.
      */
     fun getAllProgressFlow(): Flow<List<ModuleProgress>> {
         return progressDao.getAllProgressFlow().map { list ->
             list.map { it.toModuleProgress() }
         }
     }
-    
+
     /**
-     * Получить прогресс по модулю
+     * Поток прогресса по конкретному модулю.
      */
-    suspend fun getModuleProgress(moduleId: String): ModuleProgress {
-        return progressDao.getProgressByModule(moduleId)?.toModuleProgress()
-            ?: ModuleProgress(moduleId = moduleId)
-    }
-    
-    /**
-     * Получить прогресс по модулю как Flow
-     */
-    fun getModuleProgressFlow(moduleId: String): Flow<ModuleProgress> {
-        return progressDao.getProgressByModuleFlow(moduleId).map { 
-            it?.toModuleProgress() ?: ModuleProgress(moduleId = moduleId)
+    fun getModuleProgressFlow(moduleId: String): Flow<ModuleProgress?> {
+        return progressDao.getProgressByModuleFlow(moduleId).map { entity ->
+            entity?.toModuleProgress()
         }
     }
-    
+
     /**
-     * Сохранить прогресс по модулю
+     * Получить или создать прогресс для модуля.
      */
-    suspend fun saveProgress(progress: ModuleProgress) {
-        progressDao.insertProgress(ProgressEntity.fromModuleProgress(progress))
+    suspend fun getOrCreateModuleProgress(moduleId: String): ModuleProgress = withContext(ioDispatcher) {
+        val existing = progressDao.getProgressByModule(moduleId)
+        existing?.toModuleProgress() ?: ModuleProgress(moduleId).also { progress ->
+            progressDao.insertProgress(ProgressEntity.fromModuleProgress(progress))
+        }
     }
-    
+
     /**
-     * Отметить урок как завершённый
+     * Отметить урок как завершённый и сохранить прогресс.
      */
-    suspend fun completeLesson(moduleId: String, lessonId: String) {
-        val progress = getModuleProgress(moduleId)
-        progress.completeLesson(lessonId)
-        saveProgress(progress)
+    suspend fun completeLesson(moduleId: String, lessonId: String) = withContext(ioDispatcher) {
+        val current = getOrCreateModuleProgress(moduleId)
+        current.completeLesson(lessonId)
+        progressDao.insertProgress(ProgressEntity.fromModuleProgress(current))
     }
-    
+
     /**
-     * Отметить задание как завершённое
+     * Завершить задание, обновив счёт и лучшую попытку.
      */
-    suspend fun completeTask(moduleId: String, score: Int) {
-        val progress = getModuleProgress(moduleId)
-        progress.completeTask(score)
-        saveProgress(progress)
+    suspend fun completeTask(moduleId: String, score: Int) = withContext(ioDispatcher) {
+        progressDao.completeTask(moduleId, score)
     }
-    
+
     /**
-     * Получить количество завершённых заданий
+     * Получить количество завершённых заданий.
      */
-    suspend fun getCompletedTasksCount(): Int {
-        return progressDao.getCompletedTasksCount()
+    suspend fun getCompletedTasksCount(): Int = withContext(ioDispatcher) {
+        progressDao.getCompletedTasksCount()
     }
-    
+
     /**
-     * Получить общий счёт
+     * Удалить весь прогресс (используется при выходе/сбросе).
      */
-    suspend fun getTotalScore(): Int {
-        return progressDao.getTotalScore() ?: 0
-    }
-    
-    /**
-     * Проверить, завершён ли модуль
-     */
-    suspend fun isModuleCompleted(moduleId: String, totalLessons: Int): Boolean {
-        val progress = getModuleProgress(moduleId)
-        return progress.isCompleted(totalLessons)
-    }
-    
-    /**
-     * Получить общий прогресс по всем модулям (0.0 - 1.0)
-     */
-    suspend fun getOverallProgress(totalModules: Int): Float {
-        if (totalModules == 0) return 0f
-        val completedTasks = getCompletedTasksCount()
-        return completedTasks.toFloat() / totalModules
-    }
-    
-    /**
-     * Сбросить весь прогресс
-     */
-    suspend fun resetAllProgress() {
+    suspend fun clearAll() = withContext(ioDispatcher) {
         progressDao.deleteAll()
     }
 }

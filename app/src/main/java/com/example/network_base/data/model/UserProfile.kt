@@ -8,10 +8,41 @@ import java.util.UUID
 data class UserProfile(
     val id: String = UUID.randomUUID().toString(),
     var name: String = "Пользователь",
+    var email: String? = null,
+    var role: UserRole = UserRole.GUEST,
     var xp: Int = 0,
     var currentModuleId: String? = null,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    // Поля для прогресса пользователя
+    val completedModules: MutableMap<String, MutableSet<String>> = mutableMapOf(),
+    var totalLessonsCompleted: Int = 0,
+    val achievements: MutableSet<String> = mutableSetOf(),
+    var totalAchievements: Int = 0,
+    var tasksCompleted: Int = 0,
+    var totalTimeSpent: Long = 0L,
+    var networksCreated: Int = 0
 ) {
+    // Добавляем метод cloneWithValues с нужными полями
+    fun cloneWithValues(
+        id: String = this.id,
+        name: String = this.name,
+        email: String? = this.email,
+        role: UserRole = this.role,
+        xp: Int = this.xp,
+        currentModuleId: String? = this.currentModuleId,
+        createdAt: Long = this.createdAt,
+        completedModules: MutableMap<String, MutableSet<String>> = this.completedModules,
+        totalLessonsCompleted: Int = this.totalLessonsCompleted,
+        achievements: MutableSet<String> = this.achievements,
+        totalAchievements: Int = this.totalAchievements,
+        tasksCompleted: Int = this.tasksCompleted,
+        totalTimeSpent: Long = this.totalTimeSpent,
+        networksCreated: Int = this.networksCreated
+    ): UserProfile = UserProfile(
+        id, name, email, role, xp, currentModuleId, createdAt,
+        completedModules, totalLessonsCompleted, achievements, totalAchievements,
+        tasksCompleted, totalTimeSpent, networksCreated
+    )
     /**
      * Получить текущий уровень на основе XP
      * Формула: level = sqrt(xp / 100)
