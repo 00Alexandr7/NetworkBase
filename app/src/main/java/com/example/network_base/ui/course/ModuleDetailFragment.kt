@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.network_base.NetworkBaseApplication
 import com.example.network_base.R
 import com.example.network_base.data.model.CourseModule
-import com.example.network_base.data.model.Lesson
+import com.example.network_base.data.model.LessonWithContent
 import com.example.network_base.data.model.ModuleProgress
 import com.example.network_base.data.repository.CourseRepository
 import com.example.network_base.data.repository.ProgressRepository
@@ -26,7 +26,7 @@ class ModuleDetailFragment : Fragment() {
     
     private lateinit var courseRepository: CourseRepository
     private lateinit var progressRepository: ProgressRepository
-    private lateinit var adapter: LessonAdapter
+    private lateinit var adapter: com.example.network_base.ui.course.LessonAdapter
     
     private var moduleId: String? = null
     private var module: CourseModule? = null
@@ -46,7 +46,7 @@ class ModuleDetailFragment : Fragment() {
         moduleId = arguments?.getString("moduleId")
         
         val app = requireActivity().application as NetworkBaseApplication
-        courseRepository = CourseRepository(requireContext())
+        courseRepository = CourseRepository()
         progressRepository = ProgressRepository(app.database.progressDao())
         
         setupToolbar()
@@ -61,7 +61,7 @@ class ModuleDetailFragment : Fragment() {
     }
     
     private fun setupRecyclerView() {
-        adapter = LessonAdapter { lesson ->
+        adapter = com.example.network_base.ui.course.LessonAdapter { lesson ->
             navigateToLesson(lesson)
         }
         
@@ -93,8 +93,12 @@ class ModuleDetailFragment : Fragment() {
                 
                 // Observe progress
                 viewLifecycleOwner.lifecycleScope.launch {
+                    val initial = progressRepository.getOrCreateModuleProgress(id)
+                    updateUI(mod, initial)
+
                     progressRepository.getModuleProgressFlow(id).collectLatest { progress ->
-                        updateUI(mod, progress)
+                        val p = progress ?: initial
+                        updateUI(mod, p)
                     }
                 }
             }
@@ -133,7 +137,7 @@ class ModuleDetailFragment : Fragment() {
         }
     }
     
-    private fun navigateToLesson(lesson: Lesson) {
+    private fun navigateToLesson(lesson: LessonWithContent) {
         val bundle = Bundle().apply {
             putString("lessonId", lesson.id)
         }
@@ -154,7 +158,7 @@ class ModuleDetailFragment : Fragment() {
 }
 
 data class LessonWithProgress(
-    val lesson: Lesson,
+    val lesson: LessonWithContent,
     val isCompleted: Boolean
 )
 

@@ -7,11 +7,11 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.network_base.R
-import com.example.network_base.data.model.Lesson
+import com.example.network_base.data.model.LessonWithContent
 import com.example.network_base.databinding.ItemLessonBinding
 
 class LessonAdapter(
-    private val onLessonClick: (Lesson) -> Unit
+    private val onLessonClick: (LessonWithContent) -> Unit
 ) : ListAdapter<LessonWithProgress, LessonAdapter.ViewHolder>(DiffCallback()) {
     
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {

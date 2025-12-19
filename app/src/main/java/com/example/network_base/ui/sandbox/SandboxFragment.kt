@@ -98,16 +98,31 @@ class SandboxFragment : Fragment() {
         }
         
         binding.networkCanvas.onConnectionCreated = { device1, device2 ->
-            topology.connectDevices(device1.id, device2.id)
-            binding.networkCanvas.invalidate()
-            binding.networkCanvas.mode = CanvasMode.SELECT
-            updateToolbarSelection()
-            Snackbar.make(binding.root, "Соединение создано: ${device1.name} ↔ ${device2.name}", Snackbar.LENGTH_SHORT).show()
+            val sourceInterfaceId = device1.getPrimaryInterface()?.id
+            val targetInterfaceId = device2.getPrimaryInterface()?.id
+
+            if (sourceInterfaceId != null && targetInterfaceId != null) {
+                topology = topology.connectDevices(
+                    sourceDeviceId = device1.id,
+                    sourceInterfaceId = sourceInterfaceId,
+                    targetDeviceId = device2.id,
+                    targetInterfaceId = targetInterfaceId
+                )
+                binding.networkCanvas.topology = topology
+                binding.networkCanvas.invalidate()
+                binding.networkCanvas.mode = CanvasMode.SELECT
+                updateToolbarSelection()
+                Snackbar.make(
+                    binding.root,
+                    "Соединение создано: ${device1.name} ↔ ${device2.name}",
+                    Snackbar.LENGTH_SHORT
+                ).show()
+            }
         }
     }
     
     private fun setupToolbarButtons() {
-        binding.buttonAddPc.setOnClickListener { addDevice(DeviceType.PC) }
+        binding.buttonAddPc.setOnClickListener { addDevice(DeviceType.COMPUTER) }
         binding.buttonAddServer.setOnClickListener { addDevice(DeviceType.SERVER) }
         binding.buttonAddSwitch.setOnClickListener { addDevice(DeviceType.SWITCH) }
         binding.buttonAddRouter.setOnClickListener { addDevice(DeviceType.ROUTER) }
@@ -123,7 +138,8 @@ class SandboxFragment : Fragment() {
         
         binding.buttonDelete.setOnClickListener {
             selectedDevice?.let { device ->
-                topology.removeDevice(device.id)
+                topology = topology.removeDevice(device.id)
+                binding.networkCanvas.topology = topology
                 binding.networkCanvas.invalidate()
                 selectedDevice = null
                 hideBottomSheet()
@@ -145,10 +161,12 @@ class SandboxFragment : Fragment() {
         deviceCounter[type] = count
         
         val name = when (type) {
-            DeviceType.PC -> "PC-$count"
+            DeviceType.COMPUTER, DeviceType.PC -> "PC-$count"
             DeviceType.ROUTER -> "Router-$count"
             DeviceType.SWITCH -> "Switch-$count"
             DeviceType.SERVER -> "Server-$count"
+            DeviceType.FIREWALL -> "Firewall-$count"
+            DeviceType.ACCESS_POINT -> "AP-$count"
             DeviceType.HUB -> "Hub-$count"
         }
         
@@ -156,14 +174,41 @@ class SandboxFragment : Fragment() {
         val centerY = binding.networkCanvas.height / 2f
         val offset = (Math.random() * 100 - 50).toFloat()
         
-        val device = NetworkDevice(
-            type = type,
-            name = name,
-            x = centerX + offset,
-            y = centerY + offset
-        )
+        val device = when (type) {
+            DeviceType.COMPUTER, DeviceType.PC -> Computer(
+                id = "device_${System.currentTimeMillis()}",
+                name = name,
+                x = centerX + offset,
+                y = centerY + offset
+            )
+            DeviceType.ROUTER -> Router(
+                id = "device_${System.currentTimeMillis()}",
+                name = name,
+                x = centerX + offset,
+                y = centerY + offset
+            )
+            DeviceType.SWITCH, DeviceType.HUB -> Switch(
+                id = "device_${System.currentTimeMillis()}",
+                name = name,
+                x = centerX + offset,
+                y = centerY + offset
+            )
+            DeviceType.SERVER -> Computer(
+                id = "device_${System.currentTimeMillis()}",
+                name = name,
+                x = centerX + offset,
+                y = centerY + offset
+            )
+            DeviceType.FIREWALL, DeviceType.ACCESS_POINT -> Computer(
+                id = "device_${System.currentTimeMillis()}",
+                name = name,
+                x = centerX + offset,
+                y = centerY + offset
+            )
+        }
         
-        topology.addDevice(device)
+        topology = topology.addDevice(device)
+        binding.networkCanvas.topology = topology
         binding.networkCanvas.invalidate()
         
         // Check explorer achievement
@@ -188,11 +233,13 @@ class SandboxFragment : Fragment() {
         val bottomSheet = binding.root.findViewById<View>(R.id.bottom_sheet)
         
         bottomSheet.findViewById<android.widget.TextView>(R.id.text_device_name)?.text = device.name
-        bottomSheet.findViewById<android.widget.TextView>(R.id.text_device_type)?.text = when (device.type) {
-            DeviceType.PC -> "Компьютер"
+        bottomSheet.findViewById<android.widget.TextView>(R.id.text_device_type)?.text = when (device.type()) {
+            DeviceType.COMPUTER, DeviceType.PC -> "Компьютер"
             DeviceType.ROUTER -> "Роутер"
             DeviceType.SWITCH -> "Коммутатор"
             DeviceType.SERVER -> "Сервер"
+            DeviceType.FIREWALL -> "Межсетевой экран"
+            DeviceType.ACCESS_POINT -> "Точка доступа"
             DeviceType.HUB -> "Хаб"
         }
         
@@ -227,18 +274,48 @@ class SandboxFragment : Fragment() {
             val newIp = bottomSheet.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.edit_ip_address)?.text?.toString()
             val newGateway = bottomSheet.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.edit_gateway)?.text?.toString()
             
-            newName?.let { device.name = it }
-            
-            if (!device.isLayer2Device()) {
-                device.interfaces.firstOrNull()?.ipAddress = newIp?.ifEmpty { null }
-                device.interfaces.firstOrNull()?.subnetMask = "255.255.255.0"
+            val updatedInterfaces = if (!device.isLayer2Device()) {
+                device.interfaces.mapIndexed { index, iface ->
+                    if (index == 0) {
+                        iface.copy(
+                            ipAddress = newIp?.ifEmpty { null },
+                            subnetMask = "255.255.255.0"
+                        )
+                    } else {
+                        iface
+                    }
+                }
+            } else {
+                device.interfaces
             }
-            
-            if (!device.isRouter()) {
-                device.defaultGateway = newGateway?.ifEmpty { null }
+
+            val updatedDevice: NetworkDevice = when (device) {
+                is Computer -> device.copy(
+                    name = newName?.takeIf { it.isNotBlank() } ?: device.name,
+                    interfaces = updatedInterfaces
+                )
+                is Switch -> device.copy(
+                    name = newName?.takeIf { it.isNotBlank() } ?: device.name,
+                    interfaces = updatedInterfaces
+                )
+                is Router -> device.copy(
+                    name = newName?.takeIf { it.isNotBlank() } ?: device.name,
+                    interfaces = updatedInterfaces
+                )
             }
-            
+
+            if (!updatedDevice.isRouter()) {
+                updatedDevice.defaultGateway = newGateway?.ifEmpty { null }
+            }
+
+            topology = topology.copy(
+                devices = topology.devices.map { existing ->
+                    if (existing.id == device.id) updatedDevice else existing
+                }
+            )
+            binding.networkCanvas.topology = topology
             binding.networkCanvas.invalidate()
+            selectedDevice = updatedDevice
         }
         
         hideBottomSheet()
@@ -356,8 +433,10 @@ class SandboxFragment : Fragment() {
     
     private fun saveTopology() {
         viewLifecycleOwner.lifecycleScope.launch {
-            topologyRepository.saveTopology(topology, topology.name)
-            Snackbar.make(binding.root, "Топология сохранена", Snackbar.LENGTH_SHORT).show()
+            // Обновляем currentTopology в репозитории перед сохранением
+            topologyRepository.updateTopology(topology)
+            val savedTopology = topologyRepository.saveCurrentTopology(topology.name)
+            Snackbar.make(binding.root, "Топология сохранена: ${savedTopology.name}", Snackbar.LENGTH_SHORT).show()
         }
     }
     
@@ -376,12 +455,12 @@ class SandboxFragment : Fragment() {
                 .setTitle("Загрузить топологию")
                 .setItems(names) { _, which ->
                     viewLifecycleOwner.lifecycleScope.launch {
-                        topologyRepository.getTopologyById(topologies[which].id)?.let { loaded ->
-                            topology = loaded
-                            binding.networkCanvas.topology = topology
-                            deviceCounter.clear()
-                            Snackbar.make(binding.root, "Загружено: ${loaded.name}", Snackbar.LENGTH_SHORT).show()
-                        }
+                        val selected = topologies[which]
+                        val topologyObj = com.google.gson.Gson().fromJson(selected.topologyJson, NetworkTopology::class.java)
+                        topology = topologyObj
+                        binding.networkCanvas.topology = topology
+                        deviceCounter.clear()
+                        Snackbar.make(binding.root, "Загружено: ${selected.name}", Snackbar.LENGTH_SHORT).show()
                     }
                 }
                 .setNegativeButton("Отмена") { _, _ -> }

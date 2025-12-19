@@ -16,7 +16,7 @@ import com.example.network_base.NetworkBaseApplication
 import com.example.network_base.R
 import com.example.network_base.data.model.ContentBlock
 import com.example.network_base.data.model.InfoType
-import com.example.network_base.data.model.Lesson
+import com.example.network_base.data.model.LessonWithContent
 import com.example.network_base.data.model.TextStyle
 import com.example.network_base.data.repository.CourseRepository
 import com.example.network_base.data.repository.ProgressRepository
@@ -34,7 +34,7 @@ class LessonFragment : Fragment() {
     private lateinit var progressRepository: ProgressRepository
     
     private var lessonId: String? = null
-    private var lesson: Lesson? = null
+    private var lesson: LessonWithContent? = null
     
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -51,7 +51,7 @@ class LessonFragment : Fragment() {
         lessonId = arguments?.getString("lessonId")
         
         val app = requireActivity().application as NetworkBaseApplication
-        courseRepository = CourseRepository(requireContext())
+        courseRepository = CourseRepository()
         progressRepository = ProgressRepository(app.database.progressDao())
         
         setupToolbar()
@@ -81,7 +81,7 @@ class LessonFragment : Fragment() {
         }
     }
     
-    private fun renderContent(lesson: Lesson) {
+    private fun renderContent(lesson: LessonWithContent) {
         binding.containerContent.removeAllViews()
         
         for (block in lesson.contentBlocks) {
@@ -92,38 +92,53 @@ class LessonFragment : Fragment() {
         }
     }
     
-    private fun createBlockView(block: ContentBlock): View? {
+    private fun createBlockView(block: ContentBlock): View {
         val context = requireContext()
         val dp16 = (16 * resources.displayMetrics.density).toInt()
         val dp8 = (8 * resources.displayMetrics.density).toInt()
         
-        return when (block) {
-            is ContentBlock.Text -> {
+        return when (block.type) {
+            InfoType.TEXT -> {
                 TextView(context).apply {
                     text = block.content
                     setTextColor(ContextCompat.getColor(context, R.color.text_primary))
                     
                     when (block.style) {
-                        TextStyle.HEADING1 -> {
+                        TextStyle.HEADING_1 -> {
                             textSize = 24f
                             setTypeface(null, Typeface.BOLD)
                             setPadding(0, dp16, 0, dp8)
                         }
-                        TextStyle.HEADING2 -> {
+                        TextStyle.HEADING_2 -> {
                             textSize = 20f
                             setTypeface(null, Typeface.BOLD)
                             setPadding(0, dp16, 0, dp8)
                         }
-                        TextStyle.HEADING3 -> {
+                        TextStyle.HEADING_3 -> {
                             textSize = 18f
                             setTypeface(null, Typeface.BOLD)
                             setPadding(0, dp8, 0, dp8)
+                        }
+                        TextStyle.BOLD -> {
+                            textSize = 16f
+                            setTypeface(null, Typeface.BOLD)
+                            setPadding(0, 0, 0, dp8)
+                        }
+                        TextStyle.ITALIC -> {
+                            textSize = 16f
+                            setTypeface(null, Typeface.ITALIC)
+                            setPadding(0, 0, 0, dp8)
                         }
                         TextStyle.QUOTE -> {
                             textSize = 16f
                             setTypeface(null, Typeface.ITALIC)
                             setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
                             setPadding(dp16, dp8, 0, dp8)
+                        }
+                        TextStyle.CODE -> {
+                            textSize = 14f
+                            typeface = Typeface.MONOSPACE
+                            setPadding(0, 0, 0, dp8)
                         }
                         TextStyle.NORMAL -> {
                             textSize = 16f
@@ -134,7 +149,7 @@ class LessonFragment : Fragment() {
                 }
             }
             
-            is ContentBlock.Code -> {
+            InfoType.CODE -> {
                 MaterialCardView(context).apply {
                     radius = 8 * resources.displayMetrics.density
                     setCardBackgroundColor(ContextCompat.getColor(context, R.color.console_background))
@@ -156,13 +171,12 @@ class LessonFragment : Fragment() {
                 }
             }
             
-            is ContentBlock.InfoBox -> {
+            InfoType.NOTE, InfoType.TIP, InfoType.WARNING -> {
                 MaterialCardView(context).apply {
                     val bgColor = when (block.type) {
-                        InfoType.INFO -> R.color.primary_light
                         InfoType.TIP -> R.color.secondary_light
                         InfoType.WARNING -> R.color.warning
-                        InfoType.IMPORTANT -> R.color.error
+                        else -> R.color.primary_light
                     }
                     setCardBackgroundColor(ContextCompat.getColor(context, bgColor))
                     radius = 8 * resources.displayMetrics.density
@@ -175,7 +189,7 @@ class LessonFragment : Fragment() {
                     layoutParams = params
                     
                     val textColor = when (block.type) {
-                        InfoType.WARNING, InfoType.IMPORTANT -> R.color.white
+                        InfoType.WARNING -> R.color.white
                         else -> R.color.text_primary
                     }
                     
@@ -188,37 +202,71 @@ class LessonFragment : Fragment() {
                 }
             }
             
-            is ContentBlock.ListBlock -> {
-                LinearLayout(context).apply {
-                    orientation = LinearLayout.VERTICAL
-                    setPadding(0, dp8, 0, dp8)
-                    
-                    block.items.forEachIndexed { index, item ->
-                        addView(TextView(context).apply {
-                            val prefix = if (block.ordered) "${index + 1}. " else "• "
-                            text = "$prefix$item"
+            InfoType.EXAMPLE, InfoType.EXERCISE -> {
+                // Примеры и упражнения оформляем как отдельные карточки
+                MaterialCardView(context).apply {
+                    radius = 8 * resources.displayMetrics.density
+                    setCardBackgroundColor(ContextCompat.getColor(context, R.color.primary_light))
+
+                    val params = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    params.setMargins(0, dp8, 0, dp8)
+                    layoutParams = params
+
+                    val container = LinearLayout(context).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(dp16, dp16, dp16, dp16)
+                    }
+
+                    if (block.content.isNotBlank()) {
+                        container.addView(TextView(context).apply {
+                            text = block.content
                             textSize = 16f
+                            setTypeface(null, Typeface.BOLD)
                             setTextColor(ContextCompat.getColor(context, R.color.text_primary))
-                            setPadding(dp16, dp8 / 2, 0, dp8 / 2)
                         })
                     }
+
+                    val items = block.items
+                    if (items.isNotEmpty()) {
+                        items.forEach { item ->
+                            container.addView(TextView(context).apply {
+                                text = "• $item"
+                                textSize = 14f
+                                setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                                setPadding(0, dp8 / 2, 0, dp8 / 2)
+                            })
+                        }
+                    } else if (block.caption?.isNotBlank() == true) {
+                        container.addView(TextView(context).apply {
+                            text = block.caption
+                            textSize = 14f
+                            setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                            setPadding(0, dp8, 0, 0)
+                        })
+                    }
+
+                    addView(container)
                 }
             }
-            
-            is ContentBlock.Image -> {
-                // Placeholder for image
+
+            InfoType.DIAGRAM, InfoType.IMAGE -> {
+                // Для схем и изображений пока показываем текстовый плейсхолдер
                 TextView(context).apply {
-                    text = "[Изображение: ${block.caption ?: block.resourceName}]"
+                    val caption = block.caption ?: block.resourceName
+                    text = if (caption.isNullOrBlank()) block.content else "${block.content}\n$caption"
                     textSize = 14f
                     setTextColor(ContextCompat.getColor(context, R.color.text_hint))
                     gravity = Gravity.CENTER
                     setPadding(0, dp16, 0, dp16)
                 }
             }
-            
-            is ContentBlock.InteractiveSchema -> {
+
+            else -> {
                 TextView(context).apply {
-                    text = "[Интерактивная схема]"
+                    text = block.content
                     textSize = 14f
                     setTextColor(ContextCompat.getColor(context, R.color.text_hint))
                     gravity = Gravity.CENTER
@@ -245,4 +293,3 @@ class LessonFragment : Fragment() {
         _binding = null
     }
 }
-

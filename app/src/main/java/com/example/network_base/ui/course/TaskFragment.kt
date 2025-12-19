@@ -39,8 +39,8 @@ class TaskFragment : Fragment() {
     private lateinit var userRepository: UserRepository
     
     private var taskId: String? = null
-    private var task: Task? = null
-    private var topology: NetworkTopology = NetworkTopology()
+    private var task: TaskWithRequirements? = null
+    private var topology: NetworkTopology = NetworkTopology(name = "Задание")
     
     private lateinit var bottomSheetBehavior: BottomSheetBehavior<View>
     private var selectedDevice: NetworkDevice? = null
@@ -58,15 +58,20 @@ class TaskFragment : Fragment() {
     
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
+
         taskId = arguments?.getString("taskId")
-        
+        if (taskId == null) {
+            Snackbar.make(binding.root, "Ошибка: taskId не найден", Snackbar.LENGTH_LONG).show()
+            findNavController().navigateUp()
+            return
+        }
+
         val app = requireActivity().application as NetworkBaseApplication
-        courseRepository = CourseRepository(requireContext())
+        courseRepository = CourseRepository()
         progressRepository = ProgressRepository(app.database.progressDao())
         topologyRepository = TopologyRepository(app.database.savedTopologyDao())
         userRepository = UserRepository(app.database.userDao(), app.database.achievementDao())
-        
+
         setupToolbar()
         setupCanvas()
         setupToolbarButtons()
@@ -113,11 +118,26 @@ class TaskFragment : Fragment() {
         }
         
         binding.networkCanvas.onConnectionCreated = { device1, device2 ->
-            topology.connectDevices(device1.id, device2.id)
-            binding.networkCanvas.invalidate()
-            binding.networkCanvas.mode = CanvasMode.SELECT
-            updateToolbarSelection()
-            Snackbar.make(binding.root, "Соединение создано: ${device1.name} ↔ ${device2.name}", Snackbar.LENGTH_SHORT).show()
+            val sourceInterfaceId = device1.getPrimaryInterface()?.id
+            val targetInterfaceId = device2.getPrimaryInterface()?.id
+
+            if (sourceInterfaceId != null && targetInterfaceId != null) {
+                topology = topology.connectDevices(
+                    sourceDeviceId = device1.id,
+                    sourceInterfaceId = sourceInterfaceId,
+                    targetDeviceId = device2.id,
+                    targetInterfaceId = targetInterfaceId
+                )
+                binding.networkCanvas.topology = topology
+                binding.networkCanvas.invalidate()
+                binding.networkCanvas.mode = CanvasMode.SELECT
+                updateToolbarSelection()
+                Snackbar.make(
+                    binding.root,
+                    "Соединение создано: ${device1.name} ↔ ${device2.name}",
+                    Snackbar.LENGTH_SHORT
+                ).show()
+            }
         }
         
         binding.networkCanvas.onCanvasTapped = { x, y ->
@@ -128,7 +148,7 @@ class TaskFragment : Fragment() {
     }
     
     private fun setupToolbarButtons() {
-        binding.buttonAddPc.setOnClickListener { addDevice(DeviceType.PC) }
+        binding.buttonAddPc.setOnClickListener { addDevice(DeviceType.COMPUTER) }
         binding.buttonAddSwitch.setOnClickListener { addDevice(DeviceType.SWITCH) }
         binding.buttonAddRouter.setOnClickListener { addDevice(DeviceType.ROUTER) }
         
@@ -143,7 +163,8 @@ class TaskFragment : Fragment() {
         
         binding.buttonDelete.setOnClickListener {
             selectedDevice?.let { device ->
-                topology.removeDevice(device.id)
+                topology = topology.removeDevice(device.id)
+                binding.networkCanvas.topology = topology
                 binding.networkCanvas.invalidate()
                 selectedDevice = null
                 hideBottomSheet()
@@ -169,10 +190,13 @@ class TaskFragment : Fragment() {
         deviceCounter[type] = count
         
         val name = when (type) {
+            DeviceType.COMPUTER -> "PC-$count"
             DeviceType.PC -> "PC-$count"
             DeviceType.ROUTER -> "Router-$count"
             DeviceType.SWITCH -> "Switch-$count"
             DeviceType.SERVER -> "Server-$count"
+            DeviceType.ACCESS_POINT -> "AP-$count"
+            DeviceType.FIREWALL -> "FW-$count"
             DeviceType.HUB -> "Hub-$count"
         }
         
@@ -180,22 +204,54 @@ class TaskFragment : Fragment() {
         val centerY = binding.networkCanvas.height / 2f
         val offset = (Math.random() * 100 - 50).toFloat()
         
-        val device = NetworkDevice(
-            type = type,
-            name = name,
-            x = centerX + offset,
-            y = centerY + offset
-        )
-        
-        topology.addDevice(device)
+        val device = when (type) {
+            DeviceType.COMPUTER, DeviceType.PC -> Computer(
+                id = "device_${System.currentTimeMillis()}",
+                name = name,
+                x = centerX + offset,
+                y = centerY + offset
+            )
+            DeviceType.ROUTER -> Router(
+                id = "device_${System.currentTimeMillis()}",
+                name = name,
+                x = centerX + offset,
+                y = centerY + offset
+            )
+            DeviceType.SWITCH, DeviceType.HUB -> Switch(
+                id = "device_${System.currentTimeMillis()}",
+                name = name,
+                x = centerX + offset,
+                y = centerY + offset
+            )
+            DeviceType.SERVER -> Computer(
+                id = "device_${System.currentTimeMillis()}",
+                name = name,
+                x = centerX + offset,
+                y = centerY + offset
+            )
+            DeviceType.FIREWALL, DeviceType.ACCESS_POINT -> Computer(
+                id = "device_${System.currentTimeMillis()}",
+                name = name,
+                x = centerX + offset,
+                y = centerY + offset
+            )
+        }
+
+        topology = topology.addDevice(device)
+        binding.networkCanvas.topology = topology
         binding.networkCanvas.invalidate()
     }
     
     private fun setupBottomSheet() {
         val bottomSheet = binding.root.findViewById<View>(R.id.bottom_sheet)
+        if (bottomSheet == null) {
+            Snackbar.make(binding.root, "Ошибка интерфейса: bottom sheet не найден", Snackbar.LENGTH_LONG).show()
+            return
+        }
+
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet)
         bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
-        
+
         bottomSheet.findViewById<View>(R.id.button_apply)?.setOnClickListener {
             applyDeviceChanges()
         }
@@ -205,11 +261,13 @@ class TaskFragment : Fragment() {
         val bottomSheet = binding.root.findViewById<View>(R.id.bottom_sheet)
         
         bottomSheet.findViewById<TextView>(R.id.text_device_name)?.text = device.name
-        bottomSheet.findViewById<TextView>(R.id.text_device_type)?.text = when (device.type) {
-            DeviceType.PC -> "Компьютер"
+        bottomSheet.findViewById<TextView>(R.id.text_device_type)?.text = when (device.type()) {
+            DeviceType.COMPUTER, DeviceType.PC -> "Компьютер"
             DeviceType.ROUTER -> "Роутер"
             DeviceType.SWITCH -> "Коммутатор"
             DeviceType.SERVER -> "Сервер"
+            DeviceType.FIREWALL -> "Межсетевой экран"
+            DeviceType.ACCESS_POINT -> "Точка доступа"
             DeviceType.HUB -> "Хаб"
         }
         
@@ -244,19 +302,49 @@ class TaskFragment : Fragment() {
             val newName = bottomSheet.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.edit_device_name)?.text?.toString()
             val newIp = bottomSheet.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.edit_ip_address)?.text?.toString()
             val newGateway = bottomSheet.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.edit_gateway)?.text?.toString()
-            
-            newName?.let { device.name = it }
-            
-            if (!device.isLayer2Device()) {
-                device.interfaces.firstOrNull()?.ipAddress = newIp?.ifEmpty { null }
-                device.interfaces.firstOrNull()?.subnetMask = "255.255.255.0"
+
+            val updatedInterfaces = if (!device.isLayer2Device()) {
+                device.interfaces.mapIndexed { index, iface ->
+                    if (index == 0) {
+                        iface.copy(
+                            ipAddress = newIp?.ifEmpty { null },
+                            subnetMask = "255.255.255.0"
+                        )
+                    } else {
+                        iface
+                    }
+                }
+            } else {
+                device.interfaces
             }
-            
-            if (!device.isRouter()) {
-                device.defaultGateway = newGateway?.ifEmpty { null }
+
+            val updatedDevice: NetworkDevice = when (device) {
+                is Computer -> device.copy(
+                    name = newName?.takeIf { it.isNotBlank() } ?: device.name,
+                    interfaces = updatedInterfaces
+                )
+                is Switch -> device.copy(
+                    name = newName?.takeIf { it.isNotBlank() } ?: device.name,
+                    interfaces = updatedInterfaces
+                )
+                is Router -> device.copy(
+                    name = newName?.takeIf { it.isNotBlank() } ?: device.name,
+                    interfaces = updatedInterfaces
+                )
             }
-            
+
+            if (!updatedDevice.isRouter()) {
+                updatedDevice.defaultGateway = newGateway?.ifEmpty { null }
+            }
+
+            topology = topology.copy(
+                devices = topology.devices.map { existing ->
+                    if (existing.id == device.id) updatedDevice else existing
+                }
+            )
+            binding.networkCanvas.topology = topology
             binding.networkCanvas.invalidate()
+            selectedDevice = updatedDevice
         }
         
         hideBottomSheet()
@@ -273,31 +361,49 @@ class TaskFragment : Fragment() {
     }
     
     private fun loadTask() {
-        taskId?.let { id ->
-            task = courseRepository.getTaskById(id)
-            task?.let { t ->
-                binding.toolbar.title = t.title
-                
-                // Load initial topology if exists
-                t.initialTopology?.let { initial ->
-                    topology = initial.copy()
-                    binding.networkCanvas.topology = topology
-                }
-                
-                // Load saved topology if exists
-                viewLifecycleOwner.lifecycleScope.launch {
-                    topologyRepository.getTopologyByTaskId(id)?.let { saved ->
+        val id = taskId
+        if (id.isNullOrBlank()) {
+            Snackbar.make(binding.root, "Не удалось открыть задание: отсутствует taskId", Snackbar.LENGTH_LONG).show()
+            findNavController().navigateUp()
+            return
+        }
+
+        val loaded = courseRepository.getTaskById(id)
+        if (loaded == null) {
+            Snackbar.make(binding.root, "Не удалось открыть задание: не найдено ($id)", Snackbar.LENGTH_LONG).show()
+            findNavController().navigateUp()
+            return
+        }
+
+        task = loaded
+        binding.toolbar.title = loaded.title
+
+        loaded.initialTopology?.let { initial ->
+            topology = initial.copy()
+            binding.networkCanvas.topology = topology
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching { topologyRepository.getTopologyByTaskId(id) }
+                .onSuccess { saved ->
+                    if (saved != null) {
                         topology = saved
                         binding.networkCanvas.topology = topology
                     }
                 }
-                
-                renderObjectives(t)
-            }
+                .onFailure { e ->
+                    Snackbar.make(
+                        binding.root,
+                        "Сохранённая топология повреждена и будет сброшена",
+                        Snackbar.LENGTH_LONG
+                    ).show()
+                }
         }
+
+        renderObjectives(loaded)
     }
     
-    private fun renderObjectives(task: Task) {
+    private fun renderObjectives(task: TaskWithRequirements) {
         binding.containerObjectives.removeAllViews()
         
         for (objective in task.objectives) {
@@ -320,10 +426,8 @@ class TaskFragment : Fragment() {
                 // Success!
                 viewLifecycleOwner.lifecycleScope.launch {
                     progressRepository.completeTask(t.moduleId, result.score)
-                    userRepository.addXp(
-                        userRepository.getOrCreateUser().id,
-                        t.xpReward
-                    )
+                    val user = userRepository.getOrCreateUser()
+                    userRepository.addXp(user.id, t.xpReward)
                     
                     // Check achievements
                     if (progressRepository.getCompletedTasksCount() == 1) {
@@ -386,9 +490,9 @@ class TaskFragment : Fragment() {
                 Snackbar.make(binding.root, "Подсказок нет", Snackbar.LENGTH_SHORT).show()
                 return
             }
-            
-            val items = hints.map { "${it.title}: ${it.content}" }.toTypedArray()
-            
+
+            val items = hints.toTypedArray()
+
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Подсказки")
                 .setItems(items) { _, _ -> }
