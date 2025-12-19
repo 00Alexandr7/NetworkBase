@@ -102,15 +102,11 @@ com.example.network_base
 ./gradlew assembleDebug
 ```
 
-Файл APK появляется в:
+Файл APК появляется в:
 
 ```text
 app/build/outputs/apk/debug/app-debug.apk
 ```
-
-## Roadmap
-
-- Локальные уведомления (канал + пример напоминания)
 
 ## Примечания
 
