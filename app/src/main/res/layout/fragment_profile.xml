@@ -52,10 +52,14 @@
                         android:layout_height="80dp">
 
                         <ImageView
+                            android:id="@+id/image_avatar"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:src="@drawable/ic_avatar"
-                            app:tint="@color/primary" />
+                            android:contentDescription="Аватар"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:scaleType="centerCrop" />
 
                     </FrameLayout>
 
@@ -68,6 +72,26 @@
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         tools:text="Пользователь" />
+
+                    <TextView
+                        android:id="@+id/text_email"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_secondary"
+                        tools:text="user@mail.com" />
+
+                    <TextView
+                        android:id="@+id/text_role"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:padding="6dp"
+                        android:background="@drawable/bg_role_chip"
+                        android:textSize="12sp"
+                        android:textColor="@color/white"
+                        tools:text="admin" />
 
                     <TextView
                         android:id="@+id/text_level_title"
@@ -227,6 +251,13 @@
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
                 tools:listitem="@layout/item_achievement" />
+
+            <Button
+                android:id="@+id/button_logout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/auth_logout_button" />
 
         </LinearLayout>
 
