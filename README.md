@@ -117,16 +117,15 @@ users
   - `minSdk = 24`
   - `targetSdk = 35`
 
+### ER-Диаграмма
+<img width="970" height="1182" alt="image" src="https://github.com/user-attachments/assets/2f8393d1-8094-4001-b19a-86eb51e1c5dd" />
+
 ### Настройка Firebase
 
 Проект использует Firebase (Auth + Firestore). Чтобы собрать и запустить проект локально, нужно подключить свой Firebase-проект.
 
 1. Создай проект в Firebase Console
 2. Добавь Android-приложение с package name:
-
-### ER-Диаграмма
-<img width="970" height="1182" alt="image" src="https://github.com/user-attachments/assets/2f8393d1-8094-4001-b19a-86eb51e1c5dd" />
-
 
 ```text
 com.example.network_base
