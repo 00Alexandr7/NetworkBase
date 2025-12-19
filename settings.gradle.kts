@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "network_base"
+rootProject.name = "NetworkBase"
 include(":app")
