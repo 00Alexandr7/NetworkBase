@@ -64,6 +64,138 @@ Android-приложение на Kotlin — учебный симулятор �
   - `repository/` — репозитории (курсы/прогресс/пользователи/авторизация)
 - `app/src/main/java/.../domain/` — валидация/логика, не привязанная к UI
 
+## Коллекции в FireStore
+# Коллекция пользователей
+users/{userId}
+- name: string
+- email: string
+- role: string
+- xp: number
+- currentModuleId: string
+- createdAt: timestamp
+
+# Подколлекция достижений пользователя
+users/{userId}/achievements/{achievementId}
+- achievementId: string
+- unlockedAt: timestamp
+
+# Подколлекция прогресса пользователя по модулям
+users/{userId}/progress/{moduleId}
+- moduleId: string
+- lessonsCompleted: array
+- taskCompleted: boolean
+- taskScore: number
+- taskAttempts: number
+- bestScore: number
+- updatedAt: timestamp
+
+# Подколлекция сохраненных топологий пользователя
+users/{userId}/topologies/{topologyId}
+- name: string
+- createdAt: timestamp
+- updatedAt: timestamp
+
+# Подколлекция версий топологии
+users/{userId}/topologies/{topologyId}/versions/{versionId}
+- versionNumber: number
+- taskId: string
+- topologyJson: object
+- createdAt: timestamp
+
+# Подколлекция устройств в версии топологии
+users/{userId}/topologies/{topologyId}/versions/{versionId}/devices/{deviceId}
+- name: string
+- deviceType: string
+- x: number
+- y: number
+- isActive: boolean
+- portCount: number
+- defaultGateway: string
+
+# Подколлекция интерфейсов устройства
+users/{userId}/topologies/{topologyId}/versions/{versionId}/devices/{deviceId}/interfaces/{interfaceId}
+- name: string
+- macAddress: string
+- ipAddress: string
+- subnetMask: string
+- vlanId: number
+
+# Подколлекция соединений в версии топологии
+users/{userId}/topologies/{topologyId}/versions/{versionId}/connections/{connectionId}
+- sourceDeviceId: string
+- sourceInterfaceId: string
+- targetDeviceId: string
+- targetInterfaceId: string
+
+# Коллекция ролей пользователей
+userRoles/{roleId}
+- name: string
+- description: string
+- permissions: array
+
+# Коллекция определений достижений
+achievementDefinitions/{achievementId}
+- title: string
+- description: string
+- iconName: string
+- xpReward: number
+- isSecret: boolean
+
+# Коллекция модулей курса
+modules/{moduleId}
+- title: string
+- description: string
+- order: number
+
+# Подколлекция уроков модуля
+modules/{moduleId}/lessons/{lessonId}
+- title: string
+- description: string
+- content: string
+- type: string
+- order: number
+- isPublished: boolean
+- createdAt: timestamp
+- updatedAt: timestamp
+- estimatedMinutes: number
+
+# Подколлекция теоретических материалов урока
+modules/{moduleId}/lessons/{lessonId}/theories/{theoryId}
+- title: string
+- content: string
+- order: number
+
+# Подколлекция блоков контента урока
+modules/{moduleId}/lessons/{lessonId}/contentBlocks/{blockId}
+- type: string
+- content: string
+- style: string
+- caption: string
+- resourceName: string
+- order: number
+
+# Подколлекция заданий урока
+modules/{moduleId}/lessons/{lessonId}/tasks/{taskId}
+- title: string
+- description: string
+- type: string
+- isPublished: boolean
+- createdAt: timestamp
+- updatedAt: timestamp
+- xpReward: number
+
+# Подколлекция требований к заданию
+modules/{moduleId}/lessons/{lessonId}/tasks/{taskId}/requirements/{requirementId}
+- requirementType: string
+- deviceType: string
+- minCount: number
+- maxCount: number
+- description: string
+- errorMessage: string
+- subnet: string
+- vlanId: number
+
+
 ## Запуск проекта
 
 ### Требования
