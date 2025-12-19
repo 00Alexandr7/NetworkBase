@@ -1,3 +1,4 @@
+
 package com.example.network_base.data.repository
 
 import com.example.network_base.data.local.dao.SavedTopologyDao
@@ -5,144 +6,124 @@ import com.example.network_base.data.local.entities.SavedTopologyEntity
 import com.example.network_base.data.model.NetworkTopology
 import com.example.network_base.data.model.SavedTopology
 import com.google.gson.Gson
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import java.util.UUID
+import com.google.gson.JsonParseException
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Репозиторий для работы с сохранёнными топологиями
+ * Репозиторий для работы с топологиями сети через Room
  */
 class TopologyRepository(
-    private val savedTopologyDao: SavedTopologyDao,
-    private val gson: Gson = Gson()
+    private val savedTopologyDao: SavedTopologyDao
 ) {
-    
+    private val gson = Gson()
+
+    private val _currentTopology = MutableStateFlow(NetworkTopology(name = ""))
+    val currentTopology = _currentTopology.asStateFlow()
+
     /**
-     * Получить все сохранённые топологии
+     * Обновить текущую топологию в памяти
+     */
+    fun updateTopology(topology: NetworkTopology) {
+        _currentTopology.value = topology
+    }
+
+    /**
+     * Очистить текущую топологию
+     */
+    fun clearTopology() {
+        _currentTopology.value = NetworkTopology()
+    }
+
+    /**
+     * Сохранить текущую топологию с произвольным именем (без привязки к заданию).
+     */
+    suspend fun saveTopology(name: String): SavedTopology {
+        val topology = _currentTopology.value
+        val json = gson.toJson(topology)
+        val saved = SavedTopology(
+            name = name,
+            topologyJson = json
+        )
+        savedTopologyDao.insertTopology(SavedTopologyEntity.fromSavedTopology(saved))
+        return saved
+    }
+
+    /**
+     * Сохранить текущую топологию с указанным именем (для песочницы и общего списка).
+     */
+    suspend fun saveCurrentTopology(name: String): SavedTopology {
+        val topology = _currentTopology.value
+        val json = gson.toJson(topology)
+        val saved = SavedTopology(
+            name = name,
+            topologyJson = json
+        )
+        savedTopologyDao.insertTopology(SavedTopologyEntity.fromSavedTopology(saved))
+        return saved
+    }
+
+    /**
+     * Сохранить топологию, связанную с конкретным заданием.
+     */
+    suspend fun saveTopologyForTask(taskId: String, topology: NetworkTopology) {
+        val json = gson.toJson(topology)
+        val saved = SavedTopology(
+            name = "Топология для задания $taskId",
+            topologyJson = json,
+            taskId = taskId
+        )
+        savedTopologyDao.insertTopology(SavedTopologyEntity.fromSavedTopology(saved))
+    }
+
+    /**
+     * Загрузить сохранённую топологию по ID и обновить currentTopology
+     */
+    suspend fun loadTopology(savedTopologyId: String): NetworkTopology? {
+        val entity = savedTopologyDao.getTopologyById(savedTopologyId) ?: return null
+        val topology = gson.fromJson(entity.topologyJson, NetworkTopology::class.java)
+        _currentTopology.value = topology
+        return topology
+    }
+
+    /**
+     * Получить все сохранённые топологии (метаданные + JSON)
      */
     suspend fun getAllSavedTopologies(): List<SavedTopology> {
         return savedTopologyDao.getAllTopologies().map { it.toSavedTopology() }
     }
-    
-    /**
-     * Получить все сохранённые топологии как Flow
-     */
-    fun getAllSavedTopologiesFlow(): Flow<List<SavedTopology>> {
-        return savedTopologyDao.getAllTopologiesFlow().map { list ->
-            list.map { it.toSavedTopology() }
-        }
-    }
-    
+
     /**
      * Получить топологию по ID
      */
-    suspend fun getTopologyById(id: String): NetworkTopology? {
-        val saved = savedTopologyDao.getTopologyById(id) ?: return null
-        return deserializeTopology(saved.topologyJson)
+    suspend fun getTopologyById(topologyId: String): SavedTopology? {
+        return savedTopologyDao.getTopologyById(topologyId)?.toSavedTopology()
     }
-    
+
     /**
-     * Получить топологию по ID задания
+     * Получить NetworkTopology, сохранённую для конкретного задания.
      */
     suspend fun getTopologyByTaskId(taskId: String): NetworkTopology? {
-        val saved = savedTopologyDao.getTopologyByTaskId(taskId) ?: return null
-        return deserializeTopology(saved.topologyJson)
-    }
-    
-    /**
-     * Сохранить топологию
-     */
-    suspend fun saveTopology(
-        topology: NetworkTopology, 
-        name: String = topology.name,
-        taskId: String? = null
-    ): String {
-        val id = UUID.randomUUID().toString()
-        val json = serializeTopology(topology)
-        val now = System.currentTimeMillis()
-        
-        val entity = SavedTopologyEntity(
-            id = id,
-            name = name,
-            topologyJson = json,
-            createdAt = now,
-            updatedAt = now,
-            taskId = taskId
-        )
-        
-        savedTopologyDao.insertTopology(entity)
-        return id
-    }
-    
-    /**
-     * Обновить существующую топологию
-     */
-    suspend fun updateTopology(id: String, topology: NetworkTopology, name: String? = null) {
-        val existing = savedTopologyDao.getTopologyById(id) ?: return
-        
-        val updated = SavedTopologyEntity(
-            id = id,
-            name = name ?: existing.name,
-            topologyJson = serializeTopology(topology),
-            createdAt = existing.createdAt,
-            updatedAt = System.currentTimeMillis(),
-            taskId = existing.taskId
-        )
-        
-        savedTopologyDao.updateTopology(updated)
-    }
-    
-    /**
-     * Сохранить или обновить топологию для задания
-     */
-    suspend fun saveTopologyForTask(taskId: String, topology: NetworkTopology): String {
-        val existing = savedTopologyDao.getTopologyByTaskId(taskId)
-        
-        return if (existing != null) {
-            updateTopology(existing.id, topology)
-            existing.id
-        } else {
-            saveTopology(topology, topology.name, taskId)
-        }
-    }
-    
-    /**
-     * Удалить топологию
-     */
-    suspend fun deleteTopology(id: String) {
-        savedTopologyDao.deleteTopologyById(id)
-    }
-    
-    /**
-     * Получить количество сохранённых топологий
-     */
-    suspend fun getTopologyCount(): Int {
-        return savedTopologyDao.getTopologyCount()
-    }
-    
-    /**
-     * Сбросить все сохранённые топологии
-     */
-    suspend fun deleteAllTopologies() {
-        savedTopologyDao.deleteAll()
-    }
-    
-    /**
-     * Сериализовать топологию в JSON
-     */
-    private fun serializeTopology(topology: NetworkTopology): String {
-        return gson.toJson(topology)
-    }
-    
-    /**
-     * Десериализовать топологию из JSON
-     */
-    private fun deserializeTopology(json: String): NetworkTopology? {
+        val entity = savedTopologyDao.getTopologyByTaskId(taskId) ?: return null
+
         return try {
-            gson.fromJson(json, NetworkTopology::class.java)
-        } catch (e: Exception) {
+            gson.fromJson(entity.topologyJson, NetworkTopology::class.java)
+        } catch (e: JsonParseException) {
+            savedTopologyDao.deleteTopologyById(entity.id)
+            null
+        } catch (e: IllegalArgumentException) {
+            savedTopologyDao.deleteTopologyById(entity.id)
+            null
+        } catch (e: RuntimeException) {
+            savedTopologyDao.deleteTopologyById(entity.id)
             null
         }
     }
-}
 
+    /**
+     * Удалить сохранённую топологию
+     */
+    suspend fun deleteSavedTopology(savedTopologyId: String) {
+        savedTopologyDao.deleteTopologyById(savedTopologyId)
+    }
+}

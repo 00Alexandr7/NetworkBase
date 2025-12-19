@@ -109,7 +109,7 @@ class TopologyValidator {
     /**
      * Проверить задание
      */
-    fun validateTask(topology: NetworkTopology, task: Task): ValidationResult {
+    fun validateTask(topology: NetworkTopology, task: TaskWithRequirements): ValidationResult {
         val errors = mutableListOf<ValidationError>()
         val warnings = mutableListOf<String>()
         val completedRequirements = mutableListOf<String>()
@@ -125,11 +125,11 @@ class TopologyValidator {
             val passed = checkRequirement(topology, requirement)
             
             if (passed) {
-                completedRequirements.add(requirement.description)
+                completedRequirements.add(getRequirementDescription(requirement))
             } else {
-                failedRequirements.add(requirement.description)
+                failedRequirements.add(getRequirementDescription(requirement))
                 errors.add(ValidationError(
-                    message = requirement.errorMessage,
+                    message = getRequirementErrorMessage(requirement),
                     hint = getHintForRequirement(requirement),
                     severity = ErrorSeverity.ERROR
                 ))
@@ -164,7 +164,7 @@ class TopologyValidator {
     private fun checkRequirement(topology: NetworkTopology, requirement: TaskRequirement): Boolean {
         return when (requirement) {
             is TaskRequirement.DeviceCount -> {
-                val count = topology.getDevicesByType(requirement.deviceType).size
+                val count = topology.getDeviceCountByType(requirement.deviceType)
                 val minOk = count >= requirement.minCount
                 val maxOk = requirement.maxCount?.let { count <= it } ?: true
                 minOk && maxOk
@@ -173,7 +173,7 @@ class TopologyValidator {
             is TaskRequirement.DevicesConnected -> {
                 // Проверяем, что все устройства связаны
                 val devicesWithType = requirement.deviceNames.flatMap { typeName ->
-                    topology.devices.filter { it.type.name.contains(typeName, ignoreCase = true) }
+                    topology.devices.filter { it.type().toString().contains(typeName, ignoreCase = true) }
                 }
                 
                 if (devicesWithType.size < 2) return true
@@ -235,6 +235,55 @@ class TopologyValidator {
                     else -> true
                 }
             }
+
+            // Новые классы требований
+            is SpecificDevicesRequirement -> {
+                val devices = topology.devices.filter { device ->
+                    requirement.deviceNames.any { device.name.equals(it, ignoreCase = true) } &&
+                    (requirement.type == null || device.type() == requirement.type)
+                }
+                devices.size == requirement.deviceNames.size
+            }
+
+            is ConnectivityRequirement -> {
+                val fromDevice = topology.devices.find {
+                    it.name.equals(requirement.fromDeviceName, ignoreCase = true)
+                } ?: return false
+
+                val toDevice = topology.devices.find {
+                    it.name.equals(requirement.toDeviceName, ignoreCase = true)
+                } ?: return false
+
+                val simulator = NetworkSimulator(topology)
+                val path = simulator.findPath(fromDevice.id, toDevice.id)
+                path.isNotEmpty()
+            }
+
+            is IpConfigurationRequirement -> {
+                val device = topology.devices.find {
+                    it.name.equals(requirement.deviceName, ignoreCase = true)
+                } ?: return false
+
+                val ip = device.getPrimaryInterface()?.ipAddress ?: return false
+                ip.startsWith(requirement.subnet)
+            }
+
+            is SubnetCountRequirement -> {
+                val subnets = topology.getSubnets()
+                subnets.size >= requirement.count
+            }
+
+            is VlanRequirement -> {
+                val devices = topology.devices.filter { device ->
+                    requirement.deviceNames.any { device.name.equals(it, ignoreCase = true) }
+                }
+
+                devices.all { device ->
+                    device.interfaces.all { networkInterface ->
+                        networkInterface.vlanId == requirement.vlanId
+                    }
+                }
+            }
         }
     }
     
@@ -256,7 +305,7 @@ class TopologyValidator {
      */
     private fun checkGatewayConfigured(topology: NetworkTopology): Boolean {
         val pcsAndServers = topology.devices.filter { 
-            it.type == DeviceType.PC || it.type == DeviceType.SERVER 
+            it.type() == DeviceType.PC || it.type() == DeviceType.SERVER 
         }
         
         return pcsAndServers.all { it.defaultGateway != null }
@@ -269,11 +318,15 @@ class TopologyValidator {
         return when (requirement) {
             is TaskRequirement.DeviceCount -> {
                 val typeName = when (requirement.deviceType) {
+                    DeviceType.COMPUTER -> "компьютер(ов)"
                     DeviceType.PC -> "компьютер(ов)"
                     DeviceType.ROUTER -> "роутер(ов)"
                     DeviceType.SWITCH -> "коммутатор(ов)"
                     DeviceType.SERVER -> "сервер(ов)"
+                    DeviceType.FIREWALL -> "межсетевых экран(ов)"
+                    DeviceType.ACCESS_POINT -> "точек доступа"
                     DeviceType.HUB -> "хаб(ов)"
+                    else -> "устройств"
                 }
                 "Добавьте минимум ${requirement.minCount} $typeName"
             }
@@ -293,6 +346,41 @@ class TopologyValidator {
             }
             is TaskRequirement.Custom -> {
                 "Проверьте настройки согласно заданию"
+            }
+
+            // Новые классы требований
+            is SpecificDevicesRequirement -> {
+                val typeName = requirement.type?.let { 
+                    when (it) {
+                        DeviceType.COMPUTER -> "компьютер(ов)"
+                        DeviceType.PC -> "компьютер(ов)"
+                        DeviceType.ROUTER -> "роутер(ов)"
+                        DeviceType.SWITCH -> "коммутатор(ов)"
+                        DeviceType.SERVER -> "сервер(ов)"
+                        DeviceType.FIREWALL -> "межсетевых экран(ов)"
+                        DeviceType.ACCESS_POINT -> "точек доступа"
+                        DeviceType.HUB -> "хаб(ов)"
+                        else -> "устройств"
+                    }
+                } ?: "устройств"
+
+                "Добавьте следующие устройства: ${requirement.deviceNames.joinToString(", ")}"
+            }
+
+            is ConnectivityRequirement -> {
+                "Убедитесь, что ${requirement.fromDeviceName} и ${requirement.toDeviceName} соединены"
+            }
+
+            is IpConfigurationRequirement -> {
+                "Настройте IP-адрес для устройства ${requirement.deviceName} в подсети ${requirement.subnet}"
+            }
+
+            is SubnetCountRequirement -> {
+                "Создайте ${requirement.count} разных подсетей"
+            }
+
+            is VlanRequirement -> {
+                "Настройте VLAN ${requirement.vlanId} для устройств: ${requirement.deviceNames.joinToString(", ")}"
             }
         }
     }
@@ -343,6 +431,44 @@ class TopologyValidator {
         }
     }
     
+    /**
+     * Получить описание требования
+     */
+    private fun getRequirementDescription(requirement: TaskRequirement): String {
+        return when (requirement) {
+            is TaskRequirement.DeviceCount -> "Добавить ${requirement.minCount} ${requirement.deviceType}"
+            is TaskRequirement.DevicesConnected -> "Соединить устройства"
+            is TaskRequirement.IpConfigured -> "Настроить IP-адреса"
+            is TaskRequirement.SubnetCount -> "Создать ${requirement.count} подсетей"
+            is TaskRequirement.PingSuccessful -> "Проверить связность"
+            is TaskRequirement.Custom -> "Выполнить требование"
+            is SpecificDevicesRequirement -> "Добавить устройства"
+            is ConnectivityRequirement -> "Соединить устройства"
+            is IpConfigurationRequirement -> "Настроить IP-адрес"
+            is SubnetCountRequirement -> "Создать подсети"
+            is VlanRequirement -> "Настроить VLAN"
+        }
+    }
+
+    /**
+     * Получить сообщение об ошибке требования
+     */
+    private fun getRequirementErrorMessage(requirement: TaskRequirement): String {
+        return when (requirement) {
+            is TaskRequirement.DeviceCount -> "Недостаточное или избыточное количество устройств"
+            is TaskRequirement.DevicesConnected -> "Устройства не соединены"
+            is TaskRequirement.IpConfigured -> "Некорректная IP-конфигурация"
+            is TaskRequirement.SubnetCount -> "Недостаточное количество подсетей"
+            is TaskRequirement.PingSuccessful -> "Устройства не могут обмениваться пакетами"
+            is TaskRequirement.Custom -> "Требование не выполнено"
+            is SpecificDevicesRequirement -> "Требуемые устройства не найдены"
+            is ConnectivityRequirement -> "Устройства не соединены"
+            is IpConfigurationRequirement -> "Некорректная IP-конфигурация"
+            is SubnetCountRequirement -> "Недостаточное количество подсетей"
+            is VlanRequirement -> "Некорректная VLAN-конфигурация"
+        }
+    }
+
     /**
      * Проверить, могут ли два устройства обмениваться данными
      */

@@ -69,6 +69,10 @@ class NetworkCanvasView @JvmOverloads constructor(
             color = Color.parseColor("#2196F3") // Синий
             style = Paint.Style.FILL
         },
+        DeviceType.COMPUTER to Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#2196F3") // Синий
+            style = Paint.Style.FILL
+        },
         DeviceType.ROUTER to Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.parseColor("#9C27B0") // Фиолетовый
             style = Paint.Style.FILL
@@ -83,6 +87,14 @@ class NetworkCanvasView @JvmOverloads constructor(
         },
         DeviceType.HUB to Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.parseColor("#795548") // Коричневый
+            style = Paint.Style.FILL
+        },
+        DeviceType.FIREWALL to Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#F44336") // Красный
+            style = Paint.Style.FILL
+        },
+        DeviceType.ACCESS_POINT to Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#00BCD4") // Голубой
             style = Paint.Style.FILL
         }
     )
@@ -216,15 +228,9 @@ class NetworkCanvasView @JvmOverloads constructor(
     
     private fun drawConnections(canvas: Canvas, topology: NetworkTopology) {
         for (connection in topology.connections) {
-            val (device1Id, device2Id) = connection.getDeviceIds()
-            val device1 = topology.findDevice(device1Id) ?: continue
-            val device2 = topology.findDevice(device2Id) ?: continue
-            
-            connectionPaint.color = if (connection.isActive) {
-                Color.parseColor("#455A64")
-            } else {
-                Color.parseColor("#BDBDBD")
-            }
+            val device1 = topology.findDevice(connection.sourceDeviceId) ?: continue
+            val device2 = topology.findDevice(connection.targetDeviceId) ?: continue
+            connectionPaint.color = Color.parseColor("#455A64")
             
             canvas.drawLine(
                 device1.x, device1.y,
@@ -247,7 +253,7 @@ class NetworkCanvasView @JvmOverloads constructor(
     }
     
     private fun drawDevice(canvas: Canvas, device: NetworkDevice) {
-        val paint = devicePaints[device.type] ?: devicePaints[DeviceType.PC]!!
+        val paint = devicePaints[device.type()] ?: devicePaints[DeviceType.COMPUTER]!!
         
         // Тень
         val shadowPaint = Paint(paint).apply {
@@ -264,11 +270,14 @@ class NetworkCanvasView @JvmOverloads constructor(
         }
         
         // Иконка типа (буква)
-        val label = when (device.type) {
+        val label = when (device.type()) {
+            DeviceType.COMPUTER -> "PC"
             DeviceType.PC -> "PC"
             DeviceType.ROUTER -> "R"
             DeviceType.SWITCH -> "SW"
             DeviceType.SERVER -> "S"
+            DeviceType.FIREWALL -> "FW"
+            DeviceType.ACCESS_POINT -> "AP"
             DeviceType.HUB -> "H"
         }
         canvas.drawText(label, device.x, device.y + 10, textPaint)
@@ -299,6 +308,9 @@ class NetworkCanvasView @JvmOverloads constructor(
                 PacketType.ARP_REPLY -> Color.parseColor("#FFEB3B") // Светло-желтый
                 PacketType.DATA -> Color.parseColor("#03A9F4") // Голубой
                 PacketType.BROADCAST -> Color.parseColor("#FF5722") // Оранжево-красный
+                PacketType.TCP -> Color.parseColor("#2196F3") // Синий
+                PacketType.UDP -> Color.parseColor("#9C27B0") // Фиолетовый
+                PacketType.UNKNOWN -> Color.parseColor("#9E9E9E") // Серый
             }
             
             // Свечение

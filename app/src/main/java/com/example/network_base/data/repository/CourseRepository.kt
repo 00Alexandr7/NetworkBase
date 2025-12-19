@@ -1,1030 +1,722 @@
+
 package com.example.network_base.data.repository
 
-import android.content.Context
 import com.example.network_base.data.model.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Репозиторий для получения контента курса
+ * Репозиторий для работы с курсами
  */
-class CourseRepository(private val context: Context) {
-    
-    private val modules: List<CourseModule> by lazy { createCourseModules() }
-    
+class CourseRepository {
+    private val _modules = MutableStateFlow<List<CourseModule>>(emptyList())
+    val modules: Flow<List<CourseModule>> = _modules.asStateFlow()
+
+    private val _lessons = MutableStateFlow<List<LessonWithContent>>(emptyList())
+    val lessons: Flow<List<LessonWithContent>> = _lessons.asStateFlow()
+
+    private val _tasks = MutableStateFlow<List<TaskWithRequirements>>(emptyList())
+    val tasks: Flow<List<TaskWithRequirements>> = _tasks.asStateFlow()
+
+    init {
+        // Инициализация тестовыми данными
+        initializeTestData()
+    }
+
     /**
-     * Получить все модули курса
+     * Получить все модули
      */
-    fun getAllModules(): List<CourseModule> = modules
-    
+    fun getAllModules(): List<CourseModule> {
+        return _modules.value
+    }
+
     /**
      * Получить модуль по ID
      */
     fun getModuleById(moduleId: String): CourseModule? {
-        return modules.find { it.id == moduleId }
+        return _modules.value.find { it.id == moduleId }
     }
-    
+
     /**
      * Получить урок по ID
      */
-    fun getLessonById(lessonId: String): Lesson? {
-        for (module in modules) {
-            module.lessons.find { it.id == lessonId }?.let { return it }
-        }
-        return null
+    fun getLessonById(lessonId: String): LessonWithContent? {
+        return _lessons.value.find { it.id == lessonId }
     }
-    
+
     /**
      * Получить задание по ID
      */
-    fun getTaskById(taskId: String): Task? {
-        for (module in modules) {
-            if (module.task?.id == taskId) {
-                return module.task
-            }
-        }
-        return null
+    fun getTaskById(taskId: String): TaskWithRequirements? {
+        return _tasks.value.find { it.id == taskId }
     }
-    
+
     /**
-     * Получить следующий модуль
+     * Получить топологию для задания
      */
-    fun getNextModule(currentModuleId: String): CourseModule? {
-        val currentIndex = modules.indexOfFirst { it.id == currentModuleId }
-        return if (currentIndex >= 0 && currentIndex < modules.size - 1) {
-            modules[currentIndex + 1]
-        } else {
-            null
-        }
+    fun getTopologyByTaskId(taskId: String): NetworkTopology? {
+        return getTaskById(taskId)?.initialTopology
     }
-    
+
     /**
-     * Создание контента курса
+     * Инициализация тестовыми данными
      */
-    private fun createCourseModules(): List<CourseModule> {
-        return listOf(
-            createModule1(),
-            createModule2(),
-            createModule3(),
-            createModule4(),
-            createModule5()
-        )
-    }
-    
-    // ==================== МОДУЛЬ 1: Введение в сети ====================
-    private fun createModule1(): CourseModule {
-        return CourseModule(
-            id = "module_1",
-            title = "Введение в сети",
-            description = "Базовые понятия компьютерных сетей",
-            iconName = "ic_module_intro",
-            order = 1,
-            lessons = listOf(
-                createLesson1_1(),
-                createLesson1_2()
+    private fun initializeTestData() {
+        val modules = listOf(
+            CourseModule(
+                id = "module1",
+                title = "Введение в сети",
+                description = "Основы компьютерных сетей, модели OSI и TCP/IP",
+                order = 1,
+                lessons = listOf(
+                    LessonWithContent(
+                        id = "lesson1",
+                        moduleId = "module1",
+                        title = "Что такое компьютерная сеть",
+                        description = "Введение в компьютерные сети",
+                        order = 1,
+                        estimatedMinutes = 15,
+                        contentBlocks = listOf(
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Что такое компьютерная сеть?",
+                                style = TextStyle.HEADING_1
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Компьютерная сеть — это система, состоящая из двух или более устройств, соединённых между собой для обмена данными и общим доступом к ресурсам.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Зачем нужны сети",
+                                style = TextStyle.HEADING_2
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Сети позволяют совместно использовать интернет‑подключение, файловые хранилища, принтеры и другие ресурсы. Без сети каждый компьютер жил бы сам по себе.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Типы сетей",
+                                style = TextStyle.HEADING_2
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Сети можно классифицировать по разным признакам: по территории (LAN, MAN, WAN), по топологии (шина, звезда, кольцо, mesh), по способу управления (одноранговые, клиент‑серверные).",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.NOTE,
+                                content = "LAN (локальная сеть) — это офис, дом или аудитория. WAN — глобальные сети вроде интернета.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.EXAMPLE,
+                                content = "Примеры реальных сетей",
+                                style = TextStyle.NORMAL,
+                                items = listOf(
+                                    "Домашняя Wi‑Fi сеть",
+                                    "Сеть кампуса/колледжа",
+                                    "Корпоративная сеть офиса"
+                                )
+                            ),
+                            ContentBlock(
+                                type = InfoType.EXERCISE,
+                                content = "Небольшое упражнение",
+                                style = TextStyle.NORMAL,
+                                items = listOf(
+                                    "Вспомните как минимум 2 сети, с которыми вы сталкиваетесь каждый день",
+                                    "Попробуйте отнести их к типам LAN/MAN/WAN",
+                                    "Подумайте, какие устройства входят в каждую из этих сетей"
+                                )
+                            )
+                        )
+                    ),
+                    LessonWithContent(
+                        id = "lesson1_2",
+                        moduleId = "module1",
+                        title = "Модели OSI и TCP/IP",
+                        description = "Слои, инкапсуляция и зачем это нужно",
+                        order = 2,
+                        estimatedMinutes = 20,
+                        contentBlocks = listOf(
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Модели OSI и TCP/IP",
+                                style = TextStyle.HEADING_1
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Модель OSI описывает сетевое взаимодействие в виде 7 уровней: от физического до прикладного. Модель TCP/IP проще — в ней обычно выделяют 4 уровня.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Сравнение уровней",
+                                style = TextStyle.HEADING_2
+                            ),
+                            ContentBlock(
+                                type = InfoType.EXAMPLE,
+                                content = "Привязка уровней OSI к реальным устройствам",
+                                items = listOf(
+                                    "L1 (физический) — кабели, коннекторы",
+                                    "L2 (канальный) — свитчи, MAC‑адреса",
+                                    "L3 (сетевой) — роутеры, IP‑адреса",
+                                    "L7 (прикладной) — приложения (браузер, почта и т.п.)"
+                                )
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Инкапсуляция",
+                                style = TextStyle.HEADING_2
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Данные прикладного уровня последовательно оборачиваются в заголовки нижележащих уровней. На принимающей стороне заголовки снимаются в обратном порядке — это деинкапсуляция.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.TIP,
+                                content = "Представьте конверт в конверте: письмо → конверт города → конверт страны. Так работают заголовки протоколов.",
+                                style = TextStyle.NORMAL
+                            )
+                        )
+                    )
+                ),
+                task = TaskWithRequirements(
+                    id = "task1",
+                    moduleId = "module1",
+                    title = "Создание простой сети",
+                    description = "Создайте сеть из двух компьютеров, соединенных напрямую",
+                    xpReward = 25,
+                    requirements = listOf(
+                        TaskRequirement.DeviceCount(
+                            deviceType = DeviceType.COMPUTER,
+                            minCount = 2,
+                            maxCount = 2
+                        )
+                    ),
+                    hints = listOf(
+                        "Добавь 2 компьютера кнопкой 'ПК'.",
+                        "Нажми 'Соединить' и кликни по первому ПК, затем по второму — появится линия.",
+                        "Если проверка не проходит: убедись, что устройств ровно 2 и они соединены между собой."
+                    ),
+                    objectives = listOf(
+                        "Добавить два компьютера",
+                        "Соединить компьютеры напрямую"
+                    )
+                )
             ),
-            task = createTask1()
-        )
-    }
-    
-    private fun createLesson1_1(): Lesson {
-        return Lesson(
-            id = "lesson_1_1",
-            moduleId = "module_1",
-            title = "Что такое компьютерная сеть",
-            order = 1,
-            estimatedMinutes = 5,
-            contentBlocks = listOf(
-                ContentBlock.Text(
-                    "Что такое компьютерная сеть?",
-                    TextStyle.HEADING1
-                ),
-                ContentBlock.Text(
-                    "Компьютерная сеть — это группа компьютеров и других устройств, соединённых между собой для обмена данными и совместного использования ресурсов."
-                ),
-                ContentBlock.InfoBox(
-                    "Простой пример: когда вы подключаете телефон к Wi-Fi дома — вы подключаетесь к домашней сети!",
-                    InfoType.TIP
-                ),
-                ContentBlock.Text(
-                    "Зачем нужны сети?",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.ListBlock(
-                    listOf(
-                        "Обмен файлами между компьютерами",
-                        "Совместное использование принтеров и других устройств",
-                        "Доступ в интернет",
-                        "Обмен сообщениями и видеосвязь",
-                        "Совместная работа над документами"
+            CourseModule(
+                id = "module2",
+                title = "IP-адресация",
+                description = "Основы IP-адресации, подсети, маски",
+                order = 2,
+                lessons = listOf(
+                    LessonWithContent(
+                        id = "lesson2",
+                        moduleId = "module2",
+                        title = "IP-адреса и маски подсетей",
+                        description = "Основы IP-адресации",
+                        order = 1,
+                        estimatedMinutes = 20,
+                        contentBlocks = listOf(
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "IPv4: адресация и маска",
+                                style = TextStyle.HEADING_1
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "IP-адрес - это уникальный идентификатор устройства в сети. В IPv4 адрес состоит из 32 бит (4 байта) и обычно записывается в виде четырех десятичных чисел от 0 до 255, разделенных точками.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.NOTE,
+                                content = "IPv4 адрес — это 32 бита. Точка-разделённая запись (например 192.168.1.10) — это просто удобный вид четырёх байт.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Маска подсети",
+                                style = TextStyle.HEADING_2
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Маска подсети определяет, какая часть IP-адреса относится к сети, а какая - к хосту. Она также состоит из 32 бит и записывается в том же формате, что и IP-адрес.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Сетевой адрес и broadcast",
+                                style = TextStyle.HEADING_2
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "У любой подсети есть: сетевой адрес (все биты хостовой части = 0) и broadcast (все биты хостовой части = 1). Эти адреса обычно не назначаются хостам.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.EXAMPLE,
+                                content = "Пример: 192.168.1.0/24\nСеть: 192.168.1.0\nBroadcast: 192.168.1.255\nХосты: 192.168.1.1 – 192.168.1.254",
+                                style = TextStyle.NORMAL,
+                                items = listOf(
+                                    "Сеть: 192.168.1.0",
+                                    "Broadcast: 192.168.1.255",
+                                    "Хосты: 192.168.1.1 – 192.168.1.254"
+                                )
+                            ),
+                            ContentBlock(
+                                type = InfoType.TIP,
+                                content = "Быстрый лайфхак: /24 почти всегда значит 255.255.255.0 — это самый популярный вариант в домашних/учебных сетях.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.EXERCISE,
+                                content = "Мини‑практика",
+                                style = TextStyle.NORMAL,
+                                items = listOf(
+                                    "Сколько usable-хостов в сети /24?",
+                                    "Назови network и broadcast для 10.0.5.0/24.",
+                                    "Почему адрес 192.168.1.0 обычно не назначают компьютеру?"
+                                )
+                            )
+                        )
                     ),
-                    ordered = false
+                    LessonWithContent(
+                        id = "lesson2_2",
+                        moduleId = "module2",
+                        title = "Подсети и CIDR",
+                        description = "Понимание /24, /26 и разбиения сети",
+                        order = 2,
+                        estimatedMinutes = 25,
+                        contentBlocks = listOf(
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "CIDR и разбиение подсетей",
+                                style = TextStyle.HEADING_1
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "CIDR-нотация (/24, /26 и т.д.) показывает количество бит сетевой части. Чем больше число, тем меньше подсеть.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.EXAMPLE,
+                                content = "Пример: 192.168.10.0/24 — 256 адресов (254 usable), 192.168.10.0/26 — 64 адреса (62 usable).",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Сколько адресов даёт префикс",
+                                style = TextStyle.HEADING_2
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Количество адресов в подсети = 2^(32 - prefix). Usable‑адресов обычно на 2 меньше (network и broadcast).",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.EXAMPLE,
+                                content = "Подсказка по популярным префиксам",
+                                style = TextStyle.NORMAL,
+                                items = listOf(
+                                    "/24: 256 адресов, 254 usable",
+                                    "/25: 128 адресов, 126 usable",
+                                    "/26: 64 адреса, 62 usable",
+                                    "/27: 32 адреса, 30 usable",
+                                    "/28: 16 адресов, 14 usable"
+                                )
+                            ),
+                            ContentBlock(
+                                type = InfoType.WARNING,
+                                content = "Важно: не всегда “usable-2”. В некоторых кейсах (например /31 в P2P) правила отличаются, но для базовой IPv4 практики — “-2” почти всегда верно.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.EXERCISE,
+                                content = "Мини‑практика",
+                                style = TextStyle.NORMAL,
+                                items = listOf(
+                                    "Сколько usable‑адресов у /26?",
+                                    "Во сколько подсетей можно разбить 192.168.1.0/24 на /26?",
+                                    "Какие будут первые две подсети /26 внутри 192.168.1.0/24?"
+                                )
+                            )
+                        )
+                    )
                 ),
-                ContentBlock.Text(
-                    "Основные компоненты сети",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.ListBlock(
-                    listOf(
-                        "Узлы (nodes) — устройства в сети: компьютеры, телефоны, серверы",
-                        "Каналы связи — кабели или беспроводные соединения",
-                        "Сетевое оборудование — роутеры, коммутаторы, точки доступа"
+                task = TaskWithRequirements(
+                    id = "task2",
+                    moduleId = "module2",
+                    title = "Настройка IP-адресов",
+                    description = "Настройте IP-адреса для устройств в сети",
+                    xpReward = 50,
+                    requirements = listOf(
+                        TaskRequirement.DeviceCount(
+                            deviceType = DeviceType.COMPUTER,
+                            minCount = 3
+                        ),
+                        TaskRequirement.IpConfigured(
+                            subnet = "192.168.1."
+                        )
                     ),
-                    ordered = true
+                    hints = listOf(
+                        "Добавь 3 ПК и соедини их (напрямую или через свитч — зависит от требований проверки).",
+                        "Выбери ПК → открой свойства → задай IP: 192.168.1.2, 192.168.1.3, 192.168.1.4 (маска /24).",
+                        "Проверь, что у каждого устройства IP начинается с 192.168.1.",
+                        "Для проверки связности можешь нажать 'Симуляция' (ping)."
+                    ),
+                    objectives = listOf(
+                        "Добавить три компьютера",
+                        "Настроить IP-адреса в одной подсети",
+                        "Проверить связность"
+                    )
+                )
+            ),
+            CourseModule(
+                id = "module3",
+                title = "Коммутаторы и MAC",
+                description = "Канальный уровень, MAC-адреса, таблица коммутации",
+                order = 3,
+                lessons = listOf(
+                    LessonWithContent(
+                        id = "lesson3",
+                        moduleId = "module3",
+                        title = "MAC-адрес и Ethernet",
+                        description = "Как работает передача на L2",
+                        order = 1,
+                        estimatedMinutes = 18,
+                        contentBlocks = listOf(
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Канальный уровень: Ethernet и MAC",
+                                style = TextStyle.HEADING_1
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "MAC-адрес — уникальный адрес сетевого интерфейса на канальном уровне. Ethernet-кадр содержит MAC источника и назначения.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "MAC vs IP",
+                                style = TextStyle.HEADING_2
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "IP нужен для маршрутизации между подсетями (L3), MAC — для доставки внутри L2 домена. Внутри одной LAN кадры ходят по MAC, а IP используется “для логики” протоколов.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.NOTE,
+                                content = "Коммутатор обучается MAC-адресам, анализируя входящие кадры.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "ARP: как узнаём MAC по IP",
+                                style = TextStyle.HEADING_2
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Чтобы отправить кадр на IP в своей подсети, компьютер сначала должен узнать MAC адрес назначения. Для этого используется ARP (Address Resolution Protocol).",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.EXAMPLE,
+                                content = "Упрощённый сценарий ARP",
+                                style = TextStyle.NORMAL,
+                                items = listOf(
+                                    "ПК1 хочет отправить пакет на 192.168.10.3",
+                                    "ПК1 делает ARP Request (broadcast): “кто 192.168.10.3?”",
+                                    "ПК2 отвечает ARP Reply (unicast): “это я, мой MAC = …”",
+                                    "ПК1 сохраняет запись в ARP cache и отправляет Ethernet кадр на MAC ПК2"
+                                )
+                            ),
+                            ContentBlock(
+                                type = InfoType.EXERCISE,
+                                content = "Мини‑практика",
+                                style = TextStyle.NORMAL,
+                                items = listOf(
+                                    "Почему ARP Request — широковещательный?",
+                                    "Что произойдёт, если очистить ARP cache?",
+                                    "Почему MAC не помогает маршрутизировать между подсетями?"
+                                )
+                            )
+                        )
+                    ),
+                    LessonWithContent(
+                        id = "lesson3_2",
+                        moduleId = "module3",
+                        title = "Как коммутатор принимает решения",
+                        description = "Flooding, learning, forwarding",
+                        order = 2,
+                        estimatedMinutes = 22,
+                        contentBlocks = listOf(
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Логика работы коммутатора",
+                                style = TextStyle.HEADING_1
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Если MAC назначения неизвестен — коммутатор делает flooding (рассылает по всем портам кроме входящего). Когда узнаёт — начинает forwarding на конкретный порт.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Таблица коммутации (MAC table)",
+                                style = TextStyle.HEADING_2
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Коммутатор хранит соответствие: MAC → порт. При получении кадра он “учится”: запоминает MAC источника и порт, откуда пришёл кадр.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.EXAMPLE,
+                                content = "Что делает свитч при получении кадра",
+                                style = TextStyle.NORMAL,
+                                items = listOf(
+                                    "1) Записать MAC источника в таблицу (learning)",
+                                    "2) Посмотреть MAC назначения",
+                                    "3) Если MAC назначения известен → отправить только на нужный порт (forwarding)",
+                                    "4) Если неизвестен → разослать по всем портам кроме входящего (flooding)"
+                                )
+                            ),
+                            ContentBlock(
+                                type = InfoType.TIP,
+                                content = "Flooding — это нормально на старте. Через несколько кадров таблица заполнится и трафик станет “точечным”.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.EXERCISE,
+                                content = "Мини‑практика",
+                                style = TextStyle.NORMAL,
+                                items = listOf(
+                                    "Почему после подключения нового ПК первое время может быть flooding?",
+                                    "Что будет, если MAC адрес устройства сменился, а таблица ещё старая?",
+                                    "Зачем вообще VLAN, если свитч уже умеет учиться MAC?"
+                                )
+                            )
+                        )
+                    )
                 ),
-                ContentBlock.InfoBox(
-                    "В этом приложении вы будете строить виртуальные сети, добавляя устройства и соединяя их между собой.",
-                    InfoType.INFO
+                task = TaskWithRequirements(
+                    id = "task3",
+                    moduleId = "module3",
+                    title = "Сеть через коммутатор",
+                    description = "Соберите LAN: 3 ПК через коммутатор и проверьте связность",
+                    xpReward = 60,
+                    requirements = listOf(
+                        TaskRequirement.DeviceCount(deviceType = DeviceType.SWITCH, minCount = 1, maxCount = 1),
+                        TaskRequirement.DeviceCount(deviceType = DeviceType.PC, minCount = 3),
+                        TaskRequirement.IpConfigured(subnet = "192.168.10.")
+                    ),
+                    hints = listOf(
+                        "Добавь 1 коммутатор и 3 ПК.",
+                        "Соедини каждый ПК с коммутатором (3 отдельных кабеля).",
+                        "Задай IP всем ПК в одной подсети: 192.168.10.2/24, 192.168.10.3/24, 192.168.10.4/24.",
+                        "Если проверка не проходит — проверь, что коммутатор ровно один и ПК не меньше 3."
+                    ),
+                    objectives = listOf(
+                        "Добавить коммутатор",
+                        "Добавить 3 ПК",
+                        "Соединить ПК с коммутатором",
+                        "Настроить IP в одной подсети"
+                    )
+                )
+            ),
+            CourseModule(
+                id = "module4",
+                title = "Маршрутизация",
+                description = "Связь подсетей, шлюз по умолчанию, маршрутизатор",
+                order = 4,
+                lessons = listOf(
+                    LessonWithContent(
+                        id = "lesson4",
+                        moduleId = "module4",
+                        title = "Зачем нужен маршрутизатор",
+                        description = "Связь разных сетей",
+                        order = 1,
+                        estimatedMinutes = 20,
+                        contentBlocks = listOf(
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Маршрутизация и шлюз по умолчанию",
+                                style = TextStyle.HEADING_1
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Маршрутизатор работает на сетевом уровне (L3) и соединяет разные подсети. Хосты отправляют трафик вне своей сети на шлюз по умолчанию.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.TIP,
+                                content = "Если два ПК в разных подсетях — без роутера они не смогут обмениваться трафиком.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Как ПК решает: “в свою сеть” или “в другую”",
+                                style = TextStyle.HEADING_2
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Компьютер сравнивает свой IP и IP назначения с учётом маски. Если сеть совпадает — отправляет напрямую (узнав MAC через ARP). Если сеть другая — отправляет на default gateway.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.EXAMPLE,
+                                content = "Пример решения",
+                                style = TextStyle.NORMAL,
+                                items = listOf(
+                                    "ПК: 192.168.1.10/24",
+                                    "Назначение: 192.168.1.50 → та же сеть → отправка напрямую",
+                                    "Назначение: 10.0.0.20 → другая сеть → отправка на шлюз (например 192.168.1.1)"
+                                )
+                            ),
+                            ContentBlock(
+                                type = InfoType.WARNING,
+                                content = "Частая ошибка: IP адреса настроены, но не указан шлюз по умолчанию. Тогда пакеты “в другие сети” просто не уходят.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.EXERCISE,
+                                content = "Мини‑практика",
+                                style = TextStyle.NORMAL,
+                                items = listOf(
+                                    "Для ПК 10.0.0.2/24 какой должен быть шлюз, чтобы уйти в интернет через роутер?",
+                                    "Почему роутеру нужны IP адреса на каждом интерфейсе?",
+                                    "Что произойдёт, если на двух интерфейсах роутера одна и та же подсеть?"
+                                )
+                            )
+                        )
+                    )
+                ),
+                task = TaskWithRequirements(
+                    id = "task4",
+                    moduleId = "module4",
+                    title = "Соединить две подсети",
+                    description = "Создайте две подсети и обеспечьте обмен трафиком через маршрутизатор",
+                    xpReward = 90,
+                    requirements = listOf(
+                        TaskRequirement.DeviceCount(deviceType = DeviceType.ROUTER, minCount = 1, maxCount = 1),
+                        TaskRequirement.SubnetCount(count = 2)
+                    ),
+                    hints = listOf(
+                        "Добавь 1 роутер и 2 ПК (по одному в каждую подсеть).",
+                        "Соедини ПК1 ↔ роутер (порт 1) и ПК2 ↔ роутер (порт 2).",
+                        "Настрой IP: ПК1 = 192.168.1.2/24, роутер(порт1)=192.168.1.1/24; ПК2=10.0.0.2/24, роутер(порт2)=10.0.0.1/24.",
+                        "На ПК укажи default gateway: для первой подсети 192.168.1.1, для второй 10.0.0.1."
+                    ),
+                    objectives = listOf(
+                        "Добавить маршрутизатор",
+                        "Создать две подсети (разные IP диапазоны)",
+                        "Настроить IP на интерфейсах роутера",
+                        "Настроить default gateway на ПК"
+                    )
+                )
+            ),
+            CourseModule(
+                id = "module5",
+                title = "VLAN (практика)",
+                description = "Сегментация L2, изоляция широковещательного домена",
+                order = 5,
+                lessons = listOf(
+                    LessonWithContent(
+                        id = "lesson5",
+                        moduleId = "module5",
+                        title = "Что такое VLAN",
+                        description = "Разделение сети на уровне коммутатора",
+                        order = 1,
+                        estimatedMinutes = 18,
+                        contentBlocks = listOf(
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "VLAN: логическая сегментация сети",
+                                style = TextStyle.HEADING_1
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "VLAN позволяет логически разделить сеть на несколько L2 доменов внутри одного (или нескольких) коммутаторов.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.WARNING,
+                                content = "Устройства в разных VLAN не общаются напрямую на L2 без маршрутизации между VLAN.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "Зачем VLAN",
+                                style = TextStyle.HEADING_2
+                            ),
+                            ContentBlock(
+                                type = InfoType.TEXT,
+                                content = "VLAN используют для изоляции отделов/групп, снижения широковещательного трафика и повышения безопасности. Это как “несколько виртуальных коммутаторов” внутри одного.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.EXAMPLE,
+                                content = "Пример",
+                                style = TextStyle.NORMAL,
+                                items = listOf(
+                                    "VLAN 10 — бухгалтерия",
+                                    "VLAN 20 — разработка",
+                                    "Широковещательные кадры VLAN 10 не попадут в VLAN 20"
+                                )
+                            ),
+                            ContentBlock(
+                                type = InfoType.TIP,
+                                content = "В учебной практике достаточно помнить: VLAN ID назначается порту/интерфейсу. Устройство “попадает” в VLAN через порт, к которому подключено.",
+                                style = TextStyle.NORMAL
+                            ),
+                            ContentBlock(
+                                type = InfoType.EXERCISE,
+                                content = "Мини‑практика",
+                                style = TextStyle.NORMAL,
+                                items = listOf(
+                                    "Почему VLAN снижает broadcast нагрузку?",
+                                    "Можно ли ПК из VLAN 10 общаться с VLAN 20 без роутера?",
+                                    "Что нужно добавить, чтобы VLAN 10 и VLAN 20 могли обмениваться трафиком (подсказка: L3)?"
+                                )
+                            )
+                        )
+                    )
+                ),
+                task = TaskWithRequirements(
+                    id = "task5",
+                    moduleId = "module5",
+                    title = "Изоляция VLAN",
+                    description = "Создайте 2 VLAN и распределите ПК по VLAN",
+                    xpReward = 100,
+                    requirements = listOf(
+                        TaskRequirement.DeviceCount(deviceType = DeviceType.SWITCH, minCount = 1),
+                        VlanRequirement(vlanId = 10, deviceNames = listOf(), description = "Настройте VLAN 10"),
+                        VlanRequirement(vlanId = 20, deviceNames = listOf(), description = "Настройте VLAN 20")
+                    ),
+                    hints = listOf(
+                        "Добавь коммутатор и несколько ПК.",
+                        "Открой свойства интерфейса ПК и назначь VLAN ID (например, двум ПК VLAN 10, двум — VLAN 20).",
+                        "Проверь, что устройства из разных VLAN изолированы на L2.",
+                        "Если проверка не проходит — убедись, что в интерфейсах действительно выставлены VLAN 10 и VLAN 20."
+                    ),
+                    objectives = listOf(
+                        "Добавить коммутатор",
+                        "Добавить ПК и назначить VLAN 10/20 на их интерфейсах",
+                        "Проверить изоляцию между VLAN"
+                    )
                 )
             )
         )
-    }
-    
-    private fun createLesson1_2(): Lesson {
-        return Lesson(
-            id = "lesson_1_2",
-            moduleId = "module_1",
-            title = "Типы сетей",
-            order = 2,
-            estimatedMinutes = 7,
-            contentBlocks = listOf(
-                ContentBlock.Text(
-                    "Типы компьютерных сетей",
-                    TextStyle.HEADING1
-                ),
-                ContentBlock.Text(
-                    "Сети классифицируют по размеру и географическому охвату:"
-                ),
-                ContentBlock.Text(
-                    "LAN — Локальная сеть",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.Text(
-                    "Local Area Network — сеть небольшого размера, обычно в пределах одного здания или офиса."
-                ),
-                ContentBlock.ListBlock(
-                    listOf(
-                        "Домашняя сеть с Wi-Fi роутером",
-                        "Офисная сеть компании",
-                        "Сеть в учебном классе"
-                    ),
-                    ordered = false
-                ),
-                ContentBlock.InfoBox(
-                    "Характеристики LAN: высокая скорость (до 10 Гбит/с), низкая задержка, ограниченная территория.",
-                    InfoType.INFO
-                ),
-                ContentBlock.Text(
-                    "WAN — Глобальная сеть",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.Text(
-                    "Wide Area Network — сеть, объединяющая устройства на большом расстоянии, часто в разных городах или странах."
-                ),
-                ContentBlock.InfoBox(
-                    "Интернет — самая большая WAN в мире!",
-                    InfoType.TIP
-                ),
-                ContentBlock.Text(
-                    "MAN — Городская сеть",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.Text(
-                    "Metropolitan Area Network — сеть, охватывающая город или район. Например, сеть кабельного телевидения или сеть филиалов банка в городе."
-                ),
-                ContentBlock.Text(
-                    "Другие типы сетей",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.ListBlock(
-                    listOf(
-                        "PAN (Personal Area Network) — персональная сеть (Bluetooth)",
-                        "WLAN — беспроводная локальная сеть (Wi-Fi)",
-                        "VPN — виртуальная частная сеть"
-                    ),
-                    ordered = false
-                )
-            )
-        )
-    }
-    
-    private fun createTask1(): Task {
-        return Task(
-            id = "task_1",
-            moduleId = "module_1",
-            title = "Соединить два компьютера",
-            description = "Создайте простейшую сеть из двух компьютеров и соедините их между собой.",
-            objectives = listOf(
-                "Добавьте два компьютера (PC) на рабочую область",
-                "Соедините их кабелем"
-            ),
-            requirements = listOf(
-                TaskRequirement.DeviceCount(
-                    deviceType = DeviceType.PC,
-                    minCount = 2,
-                    description = "Добавить минимум 2 компьютера",
-                    errorMessage = "Нужно добавить минимум 2 компьютера"
-                ),
-                TaskRequirement.DevicesConnected(
-                    deviceNames = listOf("PC"),
-                    description = "Компьютеры должны быть соединены",
-                    errorMessage = "Компьютеры не соединены между собой"
-                )
-            ),
-            hints = listOf(
-                TaskHint(
-                    id = "hint_1_1",
-                    order = 1,
-                    type = HintType.PRACTICAL,
-                    title = "Как добавить устройство",
-                    content = "Нажмите на кнопку PC в панели инструментов, затем коснитесь рабочей области для размещения устройства."
-                ),
-                TaskHint(
-                    id = "hint_1_2",
-                    order = 2,
-                    type = HintType.PRACTICAL,
-                    title = "Как соединить устройства",
-                    content = "Нажмите кнопку 'Соединить', затем выберите первое устройство и второе — линия соединения появится автоматически."
-                )
-            ),
-            maxScore = 100,
-            xpReward = 30
-        )
-    }
-    
-    // ==================== МОДУЛЬ 2: IP-адресация ====================
-    private fun createModule2(): CourseModule {
-        return CourseModule(
-            id = "module_2",
-            title = "IP-адресация",
-            description = "Как устройства находят друг друга в сети",
-            iconName = "ic_module_ip",
-            order = 2,
-            requiredModuleId = "module_1",
-            lessons = listOf(
-                createLesson2_1(),
-                createLesson2_2(),
-                createLesson2_3()
-            ),
-            task = createTask2()
-        )
-    }
-    
-    private fun createLesson2_1(): Lesson {
-        return Lesson(
-            id = "lesson_2_1",
-            moduleId = "module_2",
-            title = "Что такое IP-адрес",
-            order = 1,
-            estimatedMinutes = 6,
-            contentBlocks = listOf(
-                ContentBlock.Text(
-                    "IP-адрес — уникальный идентификатор",
-                    TextStyle.HEADING1
-                ),
-                ContentBlock.Text(
-                    "IP-адрес (Internet Protocol address) — это уникальный числовой идентификатор устройства в сети, подобно почтовому адресу дома."
-                ),
-                ContentBlock.InfoBox(
-                    "Без IP-адреса компьютер не сможет отправлять или получать данные в сети!",
-                    InfoType.IMPORTANT
-                ),
-                ContentBlock.Text(
-                    "Зачем нужен IP-адрес?",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.ListBlock(
-                    listOf(
-                        "Идентификация устройства в сети",
-                        "Маршрутизация данных к нужному получателю",
-                        "Организация логической структуры сети"
-                    ),
-                    ordered = false
-                ),
-                ContentBlock.Text(
-                    "Пример IP-адреса",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.Code(
-                    "192.168.1.100"
-                ),
-                ContentBlock.Text(
-                    "IP-адрес состоит из 4 чисел (октетов), разделённых точками. Каждое число — от 0 до 255."
-                ),
-                ContentBlock.InfoBox(
-                    "Это как номер дома: город.район.улица.дом — каждая часть уточняет местоположение.",
-                    InfoType.TIP
-                )
-            )
-        )
-    }
-    
-    private fun createLesson2_2(): Lesson {
-        return Lesson(
-            id = "lesson_2_2",
-            moduleId = "module_2",
-            title = "IPv4: формат и классы",
-            order = 2,
-            estimatedMinutes = 8,
-            contentBlocks = listOf(
-                ContentBlock.Text(
-                    "Формат IPv4 адреса",
-                    TextStyle.HEADING1
-                ),
-                ContentBlock.Text(
-                    "IPv4 — это 32-битный адрес, записываемый как 4 десятичных числа от 0 до 255:"
-                ),
-                ContentBlock.Code(
-                    "┌────────┬────────┬────────┬────────┐\n│  192   │  168   │   1    │  100   │\n└────────┴────────┴────────┴────────┘\n   8 бит    8 бит    8 бит    8 бит"
-                ),
-                ContentBlock.Text(
-                    "Частные (приватные) адреса",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.Text(
-                    "Некоторые диапазоны адресов зарезервированы для использования в локальных сетях:"
-                ),
-                ContentBlock.ListBlock(
-                    listOf(
-                        "10.0.0.0 — 10.255.255.255 (класс A)",
-                        "172.16.0.0 — 172.31.255.255 (класс B)",
-                        "192.168.0.0 — 192.168.255.255 (класс C)"
-                    ),
-                    ordered = false
-                ),
-                ContentBlock.InfoBox(
-                    "Адреса 192.168.x.x чаще всего используются в домашних и офисных сетях.",
-                    InfoType.TIP
-                ),
-                ContentBlock.Text(
-                    "Специальные адреса",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.ListBlock(
-                    listOf(
-                        "127.0.0.1 — localhost (ваш собственный компьютер)",
-                        "0.0.0.0 — все интерфейсы",
-                        "255.255.255.255 — широковещательный адрес"
-                    ),
-                    ordered = false
-                )
-            )
-        )
-    }
-    
-    private fun createLesson2_3(): Lesson {
-        return Lesson(
-            id = "lesson_2_3",
-            moduleId = "module_2",
-            title = "Маска подсети",
-            order = 3,
-            estimatedMinutes = 7,
-            contentBlocks = listOf(
-                ContentBlock.Text(
-                    "Что такое маска подсети?",
-                    TextStyle.HEADING1
-                ),
-                ContentBlock.Text(
-                    "Маска подсети определяет, какая часть IP-адреса относится к сети, а какая — к конкретному устройству."
-                ),
-                ContentBlock.Code(
-                    "IP-адрес:    192.168.1.100\nМаска:       255.255.255.0\n─────────────────────────────\nСеть:        192.168.1.x\nУстройство:  x.x.x.100"
-                ),
-                ContentBlock.Text(
-                    "Как это работает?",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.Text(
-                    "Маска 255.255.255.0 означает:"
-                ),
-                ContentBlock.ListBlock(
-                    listOf(
-                        "Первые 3 октета (255.255.255) — адрес сети",
-                        "Последний октет (0) — адреса устройств в сети",
-                        "В такой сети может быть до 254 устройств"
-                    ),
-                    ordered = true
-                ),
-                ContentBlock.InfoBox(
-                    "Устройства могут общаться напрямую, только если они в одной подсети!",
-                    InfoType.IMPORTANT
-                ),
-                ContentBlock.Text(
-                    "Пример",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.Code(
-                    "PC1: 192.168.1.10 / 255.255.255.0\nPC2: 192.168.1.20 / 255.255.255.0\n→ В одной сети, могут общаться\n\nPC1: 192.168.1.10 / 255.255.255.0\nPC3: 192.168.2.10 / 255.255.255.0\n→ В разных сетях, нужен роутер"
-                )
-            )
-        )
-    }
-    
-    private fun createTask2(): Task {
-        return Task(
-            id = "task_2",
-            moduleId = "module_2",
-            title = "Настроить IP для сети",
-            description = "Создайте сеть из 3 компьютеров и настройте им IP-адреса в одной подсети.",
-            objectives = listOf(
-                "Добавьте 3 компьютера",
-                "Настройте каждому IP-адрес в сети 192.168.1.x",
-                "Соедините компьютеры через коммутатор"
-            ),
-            requirements = listOf(
-                TaskRequirement.DeviceCount(
-                    deviceType = DeviceType.PC,
-                    minCount = 3,
-                    description = "Добавить 3 компьютера",
-                    errorMessage = "Нужно добавить минимум 3 компьютера"
-                ),
-                TaskRequirement.DeviceCount(
-                    deviceType = DeviceType.SWITCH,
-                    minCount = 1,
-                    description = "Добавить коммутатор",
-                    errorMessage = "Нужно добавить коммутатор для соединения устройств"
-                ),
-                TaskRequirement.IpConfigured(
-                    subnet = "192.168.1",
-                    deviceType = DeviceType.PC,
-                    description = "Настроить IP в подсети 192.168.1.x",
-                    errorMessage = "IP-адреса должны быть в подсети 192.168.1.x"
-                )
-            ),
-            hints = listOf(
-                TaskHint(
-                    id = "hint_2_1",
-                    order = 1,
-                    type = HintType.THEORY,
-                    title = "Что такое подсеть?",
-                    content = "Подсеть — это группа устройств с общей частью IP-адреса. Например, 192.168.1.10 и 192.168.1.20 в одной подсети.",
-                    relatedLessonId = "lesson_2_3"
-                ),
-                TaskHint(
-                    id = "hint_2_2",
-                    order = 2,
-                    type = HintType.PRACTICAL,
-                    title = "Как настроить IP",
-                    content = "Выберите устройство → откройте свойства → введите IP-адрес, например: 192.168.1.10, 192.168.1.20, 192.168.1.30"
-                )
-            ),
-            maxScore = 100,
-            xpReward = 50
-        )
-    }
-    
-    // ==================== МОДУЛЬ 3: Коммутаторы и MAC ====================
-    private fun createModule3(): CourseModule {
-        return CourseModule(
-            id = "module_3",
-            title = "Коммутаторы и MAC",
-            description = "Как работают коммутаторы и MAC-адреса",
-            iconName = "ic_module_switch",
-            order = 3,
-            requiredModuleId = "module_2",
-            lessons = listOf(
-                createLesson3_1(),
-                createLesson3_2(),
-                createLesson3_3()
-            ),
-            task = createTask3()
-        )
-    }
-    
-    private fun createLesson3_1(): Lesson {
-        return Lesson(
-            id = "lesson_3_1",
-            moduleId = "module_3",
-            title = "MAC-адреса",
-            order = 1,
-            estimatedMinutes = 6,
-            contentBlocks = listOf(
-                ContentBlock.Text(
-                    "Что такое MAC-адрес?",
-                    TextStyle.HEADING1
-                ),
-                ContentBlock.Text(
-                    "MAC-адрес (Media Access Control) — это уникальный физический адрес сетевого устройства, записанный в его оборудование."
-                ),
-                ContentBlock.Code(
-                    "Пример: 00:1A:2B:3C:4D:5E"
-                ),
-                ContentBlock.Text(
-                    "Отличия MAC от IP",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.ListBlock(
-                    listOf(
-                        "MAC-адрес постоянный (прошит в устройство)",
-                        "IP-адрес можно менять",
-                        "MAC работает на канальном уровне (Layer 2)",
-                        "IP работает на сетевом уровне (Layer 3)"
-                    ),
-                    ordered = false
-                ),
-                ContentBlock.InfoBox(
-                    "MAC-адрес — как серийный номер устройства, IP-адрес — как временный номер в сети.",
-                    InfoType.TIP
-                ),
-                ContentBlock.Text(
-                    "Структура MAC-адреса",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.Code(
-                    "00:1A:2B : 3C:4D:5E\n─────────   ─────────\n  OUI        NIC\n(vendor)   (unique)"
-                ),
-                ContentBlock.Text(
-                    "Первые 3 байта — код производителя (OUI), последние 3 — уникальный номер устройства."
-                )
-            )
-        )
-    }
-    
-    private fun createLesson3_2(): Lesson {
-        return Lesson(
-            id = "lesson_3_2",
-            moduleId = "module_3",
-            title = "Как работает коммутатор",
-            order = 2,
-            estimatedMinutes = 8,
-            contentBlocks = listOf(
-                ContentBlock.Text(
-                    "Коммутатор (Switch)",
-                    TextStyle.HEADING1
-                ),
-                ContentBlock.Text(
-                    "Коммутатор — устройство для соединения нескольких устройств в локальной сети. В отличие от хаба, коммутатор умный — он отправляет данные только нужному получателю."
-                ),
-                ContentBlock.Text(
-                    "MAC-таблица",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.Text(
-                    "Коммутатор запоминает, какой MAC-адрес на каком порту:"
-                ),
-                ContentBlock.Code(
-                    "┌──────────────────┬──────┐\n│    MAC-адрес     │ Порт │\n├──────────────────┼──────┤\n│ 00:1A:2B:3C:4D:5E│  1   │\n│ 00:1A:2B:3C:4D:5F│  2   │\n│ 00:1A:2B:3C:4D:60│  3   │\n└──────────────────┴──────┘"
-                ),
-                ContentBlock.Text(
-                    "Алгоритм работы",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.ListBlock(
-                    listOf(
-                        "Получает кадр (frame) с данными",
-                        "Запоминает MAC отправителя и порт",
-                        "Ищет MAC получателя в таблице",
-                        "Если нашёл — отправляет на нужный порт",
-                        "Если не нашёл — отправляет на все порты (flood)"
-                    ),
-                    ordered = true
-                ),
-                ContentBlock.InfoBox(
-                    "Благодаря MAC-таблице коммутатор работает эффективнее хаба — меньше лишнего трафика.",
-                    InfoType.INFO
-                )
-            )
-        )
-    }
-    
-    private fun createLesson3_3(): Lesson {
-        return Lesson(
-            id = "lesson_3_3",
-            moduleId = "module_3",
-            title = "ARP протокол",
-            order = 3,
-            estimatedMinutes = 7,
-            contentBlocks = listOf(
-                ContentBlock.Text(
-                    "ARP — Address Resolution Protocol",
-                    TextStyle.HEADING1
-                ),
-                ContentBlock.Text(
-                    "ARP связывает IP-адреса с MAC-адресами. Когда компьютер хочет отправить данные, он знает IP получателя, но не знает его MAC."
-                ),
-                ContentBlock.Text(
-                    "Как работает ARP?",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.ListBlock(
-                    listOf(
-                        "PC1 хочет отправить данные на 192.168.1.20",
-                        "PC1 отправляет ARP-запрос: \"Кто имеет 192.168.1.20?\"",
-                        "Запрос идёт всем (broadcast)",
-                        "PC2 (владелец IP) отвечает: \"Это я, мой MAC: xx:xx:xx\"",
-                        "PC1 сохраняет ответ в ARP-таблицу",
-                        "Теперь PC1 может отправить данные напрямую"
-                    ),
-                    ordered = true
-                ),
-                ContentBlock.Code(
-                    "ARP Request (broadcast):\n\"Who has 192.168.1.20? Tell 192.168.1.10\"\n\nARP Reply (unicast):\n\"192.168.1.20 is at 00:1A:2B:3C:4D:5F\""
-                ),
-                ContentBlock.InfoBox(
-                    "ARP-таблица кэшируется, чтобы не спрашивать каждый раз. Записи живут несколько минут.",
-                    InfoType.TIP
-                )
-            )
-        )
-    }
-    
-    private fun createTask3(): Task {
-        return Task(
-            id = "task_3",
-            moduleId = "module_3",
-            title = "Сеть из 4 ПК через коммутатор",
-            description = "Постройте сеть из 4 компьютеров, соединённых через один коммутатор, и убедитесь, что они могут обмениваться данными.",
-            objectives = listOf(
-                "Добавьте 4 компьютера и 1 коммутатор",
-                "Настройте IP-адреса для всех ПК",
-                "Соедините все ПК через коммутатор",
-                "Проверьте связь с помощью ping"
-            ),
-            requirements = listOf(
-                TaskRequirement.DeviceCount(
-                    deviceType = DeviceType.PC,
-                    minCount = 4,
-                    description = "Добавить 4 компьютера",
-                    errorMessage = "Нужно добавить 4 компьютера"
-                ),
-                TaskRequirement.DeviceCount(
-                    deviceType = DeviceType.SWITCH,
-                    minCount = 1,
-                    description = "Добавить коммутатор",
-                    errorMessage = "Нужен коммутатор для соединения"
-                ),
-                TaskRequirement.IpConfigured(
-                    subnet = "192.168.1",
-                    deviceType = DeviceType.PC,
-                    description = "Все ПК в одной подсети",
-                    errorMessage = "Все компьютеры должны быть в одной подсети"
-                )
-            ),
-            hints = listOf(
-                TaskHint(
-                    id = "hint_3_1",
-                    order = 1,
-                    type = HintType.THEORY,
-                    title = "Роль коммутатора",
-                    content = "Коммутатор соединяет устройства в одной сети. Каждый ПК подключается к отдельному порту коммутатора.",
-                    relatedLessonId = "lesson_3_2"
-                )
-            ),
-            maxScore = 100,
-            xpReward = 60
-        )
-    }
-    
-    // ==================== МОДУЛЬ 4: Маршрутизация ====================
-    private fun createModule4(): CourseModule {
-        return CourseModule(
-            id = "module_4",
-            title = "Маршрутизация",
-            description = "Как данные передаются между сетями",
-            iconName = "ic_module_router",
-            order = 4,
-            requiredModuleId = "module_3",
-            lessons = listOf(
-                createLesson4_1(),
-                createLesson4_2(),
-                createLesson4_3()
-            ),
-            task = createTask4()
-        )
-    }
-    
-    private fun createLesson4_1(): Lesson {
-        return Lesson(
-            id = "lesson_4_1",
-            moduleId = "module_4",
-            title = "Что такое роутер",
-            order = 1,
-            estimatedMinutes = 6,
-            contentBlocks = listOf(
-                ContentBlock.Text(
-                    "Роутер (маршрутизатор)",
-                    TextStyle.HEADING1
-                ),
-                ContentBlock.Text(
-                    "Роутер — устройство, которое соединяет разные сети и направляет данные между ними. Он работает на сетевом уровне (Layer 3) и понимает IP-адреса."
-                ),
-                ContentBlock.InfoBox(
-                    "Если коммутатор — это почтальон в одном доме, то роутер — это почтовая служба между городами.",
-                    InfoType.TIP
-                ),
-                ContentBlock.Text(
-                    "Зачем нужен роутер?",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.ListBlock(
-                    listOf(
-                        "Соединение разных подсетей",
-                        "Выбор лучшего маршрута для данных",
-                        "Разделение широковещательных доменов",
-                        "Подключение к интернету"
-                    ),
-                    ordered = false
-                ),
-                ContentBlock.Text(
-                    "Отличие от коммутатора",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.Code(
-                    "Коммутатор:\n- Работает с MAC-адресами\n- Соединяет устройства в ОДНОЙ сети\n- Не понимает IP\n\nРоутер:\n- Работает с IP-адресами\n- Соединяет РАЗНЫЕ сети\n- Принимает решения о маршруте"
-                )
-            )
-        )
-    }
-    
-    private fun createLesson4_2(): Lesson {
-        return Lesson(
-            id = "lesson_4_2",
-            moduleId = "module_4",
-            title = "Таблица маршрутизации",
-            order = 2,
-            estimatedMinutes = 8,
-            contentBlocks = listOf(
-                ContentBlock.Text(
-                    "Таблица маршрутизации",
-                    TextStyle.HEADING1
-                ),
-                ContentBlock.Text(
-                    "Роутер использует таблицу маршрутизации, чтобы знать, куда отправлять пакеты:"
-                ),
-                ContentBlock.Code(
-                    "┌─────────────────┬───────────────┬───────────┐\n│   Назначение    │    Шлюз       │ Интерфейс │\n├─────────────────┼───────────────┼───────────┤\n│ 192.168.1.0/24  │ Напрямую      │   eth0    │\n│ 192.168.2.0/24  │ Напрямую      │   eth1    │\n│ 0.0.0.0/0       │ 10.0.0.1      │   eth2    │\n└─────────────────┴───────────────┴───────────┘"
-                ),
-                ContentBlock.Text(
-                    "Как роутер выбирает маршрут?",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.ListBlock(
-                    listOf(
-                        "Получает пакет с IP-адресом назначения",
-                        "Ищет совпадение в таблице маршрутизации",
-                        "Выбирает наиболее специфичный маршрут",
-                        "Пересылает пакет через нужный интерфейс"
-                    ),
-                    ordered = true
-                ),
-                ContentBlock.InfoBox(
-                    "Маршрут 0.0.0.0/0 — это маршрут по умолчанию (default route). Используется, если нет более подходящего.",
-                    InfoType.INFO
-                )
-            )
-        )
-    }
-    
-    private fun createLesson4_3(): Lesson {
-        return Lesson(
-            id = "lesson_4_3",
-            moduleId = "module_4",
-            title = "Шлюз по умолчанию",
-            order = 3,
-            estimatedMinutes = 5,
-            contentBlocks = listOf(
-                ContentBlock.Text(
-                    "Default Gateway — Шлюз по умолчанию",
-                    TextStyle.HEADING1
-                ),
-                ContentBlock.Text(
-                    "Шлюз по умолчанию — это IP-адрес роутера, на который устройство отправляет пакеты для адресов вне своей сети."
-                ),
-                ContentBlock.Code(
-                    "PC настройки:\nIP:      192.168.1.10\nМаска:   255.255.255.0\nШлюз:    192.168.1.1  ← IP роутера"
-                ),
-                ContentBlock.Text(
-                    "Как это работает?",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.ListBlock(
-                    listOf(
-                        "PC хочет связаться с 8.8.8.8 (Google DNS)",
-                        "PC видит: 8.8.8.8 не в моей сети 192.168.1.x",
-                        "PC отправляет пакет на шлюз (192.168.1.1)",
-                        "Роутер принимает пакет и пересылает дальше"
-                    ),
-                    ordered = true
-                ),
-                ContentBlock.InfoBox(
-                    "Без настроенного шлюза компьютер не сможет связаться с устройствами в других сетях!",
-                    InfoType.WARNING
-                )
-            )
-        )
-    }
-    
-    private fun createTask4(): Task {
-        return Task(
-            id = "task_4",
-            moduleId = "module_4",
-            title = "Соединить 2 подсети",
-            description = "Создайте две отдельные подсети и соедините их через роутер.",
-            objectives = listOf(
-                "Создайте подсеть 192.168.1.x с 2 ПК",
-                "Создайте подсеть 192.168.2.x с 2 ПК",
-                "Соедините подсети через роутер",
-                "Настройте шлюз на всех ПК"
-            ),
-            requirements = listOf(
-                TaskRequirement.DeviceCount(
-                    deviceType = DeviceType.PC,
-                    minCount = 4,
-                    description = "Добавить 4 компьютера",
-                    errorMessage = "Нужно 4 компьютера (по 2 в каждой подсети)"
-                ),
-                TaskRequirement.DeviceCount(
-                    deviceType = DeviceType.ROUTER,
-                    minCount = 1,
-                    description = "Добавить роутер",
-                    errorMessage = "Нужен роутер для соединения подсетей"
-                ),
-                TaskRequirement.SubnetCount(
-                    count = 2,
-                    description = "Создать 2 разные подсети",
-                    errorMessage = "Должно быть 2 разные подсети"
-                )
-            ),
-            hints = listOf(
-                TaskHint(
-                    id = "hint_4_1",
-                    order = 1,
-                    type = HintType.PRACTICAL,
-                    title = "Настройка роутера",
-                    content = "Роутер должен иметь IP в каждой подсети: например, 192.168.1.1 и 192.168.2.1 на разных интерфейсах."
-                ),
-                TaskHint(
-                    id = "hint_4_2",
-                    order = 2,
-                    type = HintType.THEORY,
-                    title = "Шлюз для ПК",
-                    content = "Для ПК в сети 192.168.1.x шлюз = 192.168.1.1, для ПК в сети 192.168.2.x шлюз = 192.168.2.1",
-                    relatedLessonId = "lesson_4_3"
-                )
-            ),
-            maxScore = 100,
-            xpReward = 75
-        )
-    }
-    
-    // ==================== МОДУЛЬ 5: VLAN ====================
-    private fun createModule5(): CourseModule {
-        return CourseModule(
-            id = "module_5",
-            title = "Практика VLAN",
-            description = "Виртуальные локальные сети",
-            iconName = "ic_module_vlan",
-            order = 5,
-            requiredModuleId = "module_4",
-            lessons = listOf(
-                createLesson5_1(),
-                createLesson5_2()
-            ),
-            task = createTask5()
-        )
-    }
-    
-    private fun createLesson5_1(): Lesson {
-        return Lesson(
-            id = "lesson_5_1",
-            moduleId = "module_5",
-            title = "Что такое VLAN",
-            order = 1,
-            estimatedMinutes = 7,
-            contentBlocks = listOf(
-                ContentBlock.Text(
-                    "VLAN — Virtual LAN",
-                    TextStyle.HEADING1
-                ),
-                ContentBlock.Text(
-                    "VLAN (Virtual Local Area Network) — технология, позволяющая разделить физическую сеть на несколько логических сетей."
-                ),
-                ContentBlock.InfoBox(
-                    "Представьте офис: бухгалтерия и IT-отдел подключены к одному коммутатору, но не должны видеть трафик друг друга. VLAN решает эту задачу!",
-                    InfoType.TIP
-                ),
-                ContentBlock.Text(
-                    "Преимущества VLAN",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.ListBlock(
-                    listOf(
-                        "Безопасность: изоляция трафика между группами",
-                        "Гибкость: группировка по функции, а не по расположению",
-                        "Производительность: уменьшение широковещательного трафика",
-                        "Простота управления: легко переносить пользователей между VLAN"
-                    ),
-                    ordered = false
-                ),
-                ContentBlock.Code(
-                    "Физически:\n[PC1]─┐\n[PC2]─┼──[Switch]──[PC3]\n[PC4]─┘\n\nЛогически (с VLAN):\nVLAN 10: PC1, PC2 (Бухгалтерия)\nVLAN 20: PC3, PC4 (IT-отдел)"
-                )
-            )
-        )
-    }
-    
-    private fun createLesson5_2(): Lesson {
-        return Lesson(
-            id = "lesson_5_2",
-            moduleId = "module_5",
-            title = "Зачем нужны VLAN",
-            order = 2,
-            estimatedMinutes = 6,
-            contentBlocks = listOf(
-                ContentBlock.Text(
-                    "Практические сценарии VLAN",
-                    TextStyle.HEADING1
-                ),
-                ContentBlock.Text(
-                    "Сценарий 1: Офис",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.Text(
-                    "В офисе есть разные отделы: продажи, бухгалтерия, разработка. Каждый отдел — отдельный VLAN для безопасности."
-                ),
-                ContentBlock.Text(
-                    "Сценарий 2: Гостевой Wi-Fi",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.Text(
-                    "Гости подключаются к отдельному VLAN, изолированному от корпоративной сети."
-                ),
-                ContentBlock.Text(
-                    "Сценарий 3: VoIP телефония",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.Text(
-                    "Голосовой трафик выделяется в отдельный VLAN с приоритетом для качества связи."
-                ),
-                ContentBlock.InfoBox(
-                    "Для связи между VLAN нужен роутер или L3-коммутатор (Inter-VLAN routing).",
-                    InfoType.IMPORTANT
-                ),
-                ContentBlock.Text(
-                    "Типы портов коммутатора",
-                    TextStyle.HEADING2
-                ),
-                ContentBlock.ListBlock(
-                    listOf(
-                        "Access port — принадлежит одному VLAN (для ПК)",
-                        "Trunk port — передаёт трафик нескольких VLAN (между коммутаторами)"
-                    ),
-                    ordered = false
-                )
-            )
-        )
-    }
-    
-    private fun createTask5(): Task {
-        return Task(
-            id = "task_5",
-            moduleId = "module_5",
-            title = "Разделить сеть на отделы",
-            description = "Создайте сеть офиса с двумя отделами, изолированными с помощью VLAN.",
-            objectives = listOf(
-                "Создайте 4 ПК: 2 для отдела продаж, 2 для IT",
-                "Настройте VLAN 10 для продаж",
-                "Настройте VLAN 20 для IT",
-                "Добавьте роутер для связи между VLAN"
-            ),
-            requirements = listOf(
-                TaskRequirement.DeviceCount(
-                    deviceType = DeviceType.PC,
-                    minCount = 4,
-                    description = "Добавить 4 компьютера",
-                    errorMessage = "Нужно 4 компьютера (по 2 на отдел)"
-                ),
-                TaskRequirement.DeviceCount(
-                    deviceType = DeviceType.SWITCH,
-                    minCount = 1,
-                    description = "Добавить коммутатор",
-                    errorMessage = "Нужен коммутатор для VLAN"
-                ),
-                TaskRequirement.DeviceCount(
-                    deviceType = DeviceType.ROUTER,
-                    minCount = 1,
-                    description = "Добавить роутер",
-                    errorMessage = "Нужен роутер для связи между VLAN"
-                )
-            ),
-            hints = listOf(
-                TaskHint(
-                    id = "hint_5_1",
-                    order = 1,
-                    type = HintType.THEORY,
-                    title = "Что такое VLAN?",
-                    content = "VLAN разделяет сеть логически. Устройства в разных VLAN не видят друг друга без роутера.",
-                    relatedLessonId = "lesson_5_1"
-                ),
-                TaskHint(
-                    id = "hint_5_2",
-                    order = 2,
-                    type = HintType.PRACTICAL,
-                    title = "Настройка VLAN",
-                    content = "Выберите интерфейс устройства и укажите VLAN ID: 10 для продаж, 20 для IT."
-                )
-            ),
-            maxScore = 100,
-            xpReward = 100
-        )
+
+        _modules.value = modules
+        _lessons.value = modules.flatMap { it.lessons }
+        _tasks.value = modules.mapNotNull { it.task }
     }
 }
-

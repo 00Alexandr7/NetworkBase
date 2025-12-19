@@ -1,255 +1,292 @@
+
 package com.example.network_base.data.model
 
-import java.util.UUID
-
 /**
- * Топология сети - содержит все устройства и соединения
+ * Класс, представляющий топологию сети
  */
 data class NetworkTopology(
-    val id: String = UUID.randomUUID().toString(),
-    var name: String = "Новая сеть",
-    val devices: MutableList<NetworkDevice> = mutableListOf(),
-    val connections: MutableList<Connection> = mutableListOf()
+    val name: String = "",
+    val devices: List<NetworkDevice> = emptyList(),
+    val connections: List<NetworkConnection> = emptyList()
 ) {
-    /**
-     * Добавить устройство в топологию
-     */
-    fun addDevice(device: NetworkDevice) {
-        devices.add(device)
-    }
-    
-    /**
-     * Удалить устройство и все его соединения
-     */
-    fun removeDevice(deviceId: String) {
-        // Сначала удаляем все соединения устройства
-        val deviceConnections = connections.filter { conn ->
-            val (dev1, dev2) = conn.getDeviceIds()
-            dev1 == deviceId || dev2 == deviceId
-        }
-        
-        // Очищаем connectedTo в связанных интерфейсах
-        deviceConnections.forEach { conn ->
-            findInterface(conn.interface1Id)?.connectedTo = null
-            findInterface(conn.interface2Id)?.connectedTo = null
-        }
-        
-        connections.removeAll(deviceConnections.toSet())
-        devices.removeAll { it.id == deviceId }
-    }
-    
-    /**
-     * Создать соединение между двумя интерфейсами
-     */
-    fun connect(interface1Id: String, interface2Id: String): Boolean {
-        val iface1 = findInterface(interface1Id) ?: return false
-        val iface2 = findInterface(interface2Id) ?: return false
-        
-        // Проверяем, что интерфейсы свободны
-        if (iface1.connectedTo != null || iface2.connectedTo != null) {
-            return false
-        }
-        
-        // Проверяем, что это разные устройства
-        if (iface1.deviceId == iface2.deviceId) {
-            return false
-        }
-        
-        iface1.connectedTo = interface2Id
-        iface2.connectedTo = interface1Id
-        
-        connections.add(Connection(interface1Id = interface1Id, interface2Id = interface2Id))
-        return true
-    }
-    
-    /**
-     * Удалить соединение
-     */
-    fun disconnect(connectionId: String): Boolean {
-        val connection = connections.find { it.id == connectionId } ?: return false
-        
-        findInterface(connection.interface1Id)?.connectedTo = null
-        findInterface(connection.interface2Id)?.connectedTo = null
-        
-        return connections.remove(connection)
-    }
-    
-    /**
-     * Соединить два устройства по первым свободным интерфейсам
-     */
-    fun connectDevices(device1Id: String, device2Id: String): Boolean {
-        val device1 = findDevice(device1Id) ?: return false
-        val device2 = findDevice(device2Id) ?: return false
-        
-        val freeIface1 = device1.getFreeInterface() ?: return false
-        val freeIface2 = device2.getFreeInterface() ?: return false
-        
-        return connect(freeIface1.id, freeIface2.id)
-    }
-    
-    /**
-     * Найти интерфейс по ID
-     */
-    fun findInterface(interfaceId: String): NetworkInterface? {
-        for (device in devices) {
-            device.interfaces.find { it.id == interfaceId }?.let { return it }
-        }
-        return null
-    }
-    
     /**
      * Найти устройство по ID
      */
     fun findDevice(deviceId: String): NetworkDevice? {
         return devices.find { it.id == deviceId }
     }
-    
+
     /**
      * Найти устройство по IP-адресу
      */
-    fun findDeviceByIp(ipAddress: String): NetworkDevice? {
+    fun findDeviceByIp(ip: String): NetworkDevice? {
         return devices.find { device ->
-            device.interfaces.any { it.ipAddress == ipAddress }
+            device.interfaces.any { networkInterface ->
+                networkInterface.ipAddress == ip
+            }
         }
     }
-    
+
     /**
-     * Получить все соседние устройства
+     * Получить количество устройств по типу
+     */
+    fun getDeviceCountByType(deviceType: DeviceType): Int {
+        return devices.count { it.type() == deviceType }
+    }
+
+    /**
+     * Получить соседние устройства для указанного устройства
      */
     fun getNeighbors(deviceId: String): List<NetworkDevice> {
-        val device = findDevice(deviceId) ?: return emptyList()
-        val neighborIds = mutableSetOf<String>()
-        
-        for (iface in device.interfaces) {
-            iface.connectedTo?.let { connectedIfaceId ->
-                val neighborDeviceId = connectedIfaceId.substringBefore(":")
-                neighborIds.add(neighborDeviceId)
+        val connectedInterfaceIds = connections
+            .filter { it.sourceDeviceId == deviceId || it.targetDeviceId == deviceId }
+            .map { conn ->
+                if (conn.sourceDeviceId == deviceId) conn.targetInterfaceId
+                else conn.sourceInterfaceId
+            }
+
+        return devices.filter { device ->
+            device.interfaces.any { networkInterface ->
+                networkInterface.id in connectedInterfaceIds
             }
         }
-        
-        return neighborIds.mapNotNull { findDevice(it) }
     }
-    
+
     /**
-     * Получить соединение между двумя устройствами
+     * Получить список ID всех устройств
      */
-    fun getConnectionBetween(device1Id: String, device2Id: String): Connection? {
-        return connections.find { conn ->
-            val (dev1, dev2) = conn.getDeviceIds()
-            (dev1 == device1Id && dev2 == device2Id) || (dev1 == device2Id && dev2 == device1Id)
-        }
+    fun getDeviceIds(): List<String> {
+        return devices.map { it.id }
     }
-    
+
     /**
-     * Получить все устройства определённого типа
-     */
-    fun getDevicesByType(type: DeviceType): List<NetworkDevice> {
-        return devices.filter { it.type == type }
-    }
-    
-    /**
-     * Получить все IP-адреса в топологии
-     */
-    fun getAllIpAddresses(): List<String> {
-        return devices.flatMap { device ->
-            device.interfaces.mapNotNull { it.ipAddress }
-        }
-    }
-    
-    /**
-     * Получить все уникальные подсети (по первым 3 октетам)
+     * Получить все подсети в топологии
      */
     fun getSubnets(): Set<String> {
-        return getAllIpAddresses()
-            .map { it.substringBeforeLast(".") }
-            .toSet()
-    }
-    
-    /**
-     * Проверить, есть ли циклы в топологии
-     */
-    fun hasCycles(): Boolean {
-        if (devices.isEmpty()) return false
-        
-        val visited = mutableSetOf<String>()
-        val parent = mutableMapOf<String, String?>()
-        
-        fun dfs(deviceId: String, parentId: String?): Boolean {
-            visited.add(deviceId)
-            parent[deviceId] = parentId
-            
-            for (neighbor in getNeighbors(deviceId)) {
-                if (neighbor.id !in visited) {
-                    if (dfs(neighbor.id, deviceId)) return true
-                } else if (neighbor.id != parentId) {
-                    return true // Нашли цикл
+        return devices
+            .flatMap { it.interfaces }
+            .mapNotNull { networkInterface ->
+                networkInterface.ipAddress?.let { ip ->
+                    // Получаем подсеть из IP (упрощенно)
+                    val parts = ip.split(".")
+                    if (parts.size == 4) {
+                        "${parts[0]}.${parts[1]}.${parts[2]}.0/24"
+                    } else null
                 }
             }
-            return false
-        }
-        
-        for (device in devices) {
-            if (device.id !in visited) {
-                if (dfs(device.id, null)) return true
-            }
-        }
-        
-        return false
+            .toSet()
     }
-    
+
     /**
-     * Создать копию топологии
+     * Получить количество устройств определенного типа (альтернативный метод)
      */
-    fun copy(): NetworkTopology {
-        val newTopology = NetworkTopology(
-            id = UUID.randomUUID().toString(),
-            name = "$name (копия)"
-        )
-        
-        // Копируем устройства
-        val deviceMapping = mutableMapOf<String, String>() // old id -> new id
-        for (device in devices) {
-            val newDevice = NetworkDevice(
-                type = device.type,
-                name = device.name,
-                x = device.x,
-                y = device.y,
-                defaultGateway = device.defaultGateway
-            )
-            deviceMapping[device.id] = newDevice.id
-            
-            // Копируем интерфейсы
-            newDevice.interfaces.clear()
-            for (iface in device.interfaces) {
-                newDevice.interfaces.add(
-                    NetworkInterface(
-                        id = "${newDevice.id}:${iface.name}",
-                        name = iface.name,
-                        deviceId = newDevice.id,
-                        ipAddress = iface.ipAddress,
-                        subnetMask = iface.subnetMask,
-                        vlanId = iface.vlanId
-                    )
-                )
+    fun getDeviceCountByTypeAlt(type: DeviceType): Int {
+        return devices.count { device ->
+            when (device) {
+                is Computer -> device.type() == DeviceType.COMPUTER
+                is Switch -> device.type() == DeviceType.SWITCH
+                is Router -> device.type() == DeviceType.ROUTER
+                else -> false
             }
-            
-            newTopology.addDevice(newDevice)
         }
-        
-        // Копируем соединения
-        for (conn in connections) {
-            val oldDevice1Id = conn.interface1Id.substringBefore(":")
-            val oldDevice2Id = conn.interface2Id.substringBefore(":")
-            val ifaceName1 = conn.interface1Id.substringAfter(":")
-            val ifaceName2 = conn.interface2Id.substringAfter(":")
-            
-            val newDevice1Id = deviceMapping[oldDevice1Id] ?: continue
-            val newDevice2Id = deviceMapping[oldDevice2Id] ?: continue
-            
-            newTopology.connect("$newDevice1Id:$ifaceName1", "$newDevice2Id:$ifaceName2")
+    }
+
+    /**
+     * Получить устройства определенного типа
+     */
+    fun getDevicesByType(type: DeviceType): List<NetworkDevice> {
+        return devices.filter { device ->
+            when (device) {
+                is Computer -> device.type() == DeviceType.COMPUTER
+                is Switch -> device.type() == DeviceType.SWITCH
+                is Router -> device.type() == DeviceType.ROUTER
+                else -> false
+            }
         }
-        
-        return newTopology
+    }
+
+    /**
+     * Добавить устройство в топологию
+     */
+    fun addDevice(device: NetworkDevice): NetworkTopology {
+        return copy(devices = devices + device)
+    }
+
+    /**
+     * Удалить устройство из топологии
+     */
+    fun removeDevice(deviceId: String): NetworkTopology {
+        return copy(
+            devices = devices.filter { it.id != deviceId },
+            connections = connections.filter { 
+                it.sourceDeviceId != deviceId && it.targetDeviceId != deviceId 
+            }
+        )
+    }
+
+    /**
+     * Добавить соединение в топологию
+     */
+    fun addConnection(connection: NetworkConnection): NetworkTopology {
+        return copy(connections = connections + connection)
+    }
+
+    /**
+     * Удалить соединение из топологии
+     */
+    fun removeConnection(connectionId: String): NetworkTopology {
+        return copy(connections = connections.filter { it.id != connectionId })
+    }
+
+    /**
+     * Соединить два устройства
+     */
+    fun connectDevices(
+        sourceDeviceId: String, 
+        sourceInterfaceId: String,
+        targetDeviceId: String,
+        targetInterfaceId: String
+    ): NetworkTopology {
+        val connection = NetworkConnection(
+            id = generateId(),
+            sourceDeviceId = sourceDeviceId,
+            sourceInterfaceId = sourceInterfaceId,
+            targetDeviceId = targetDeviceId,
+            targetInterfaceId = targetInterfaceId
+        )
+        return addConnection(connection)
+    }
+
+    private fun generateId(): String {
+        return "conn_${System.currentTimeMillis()}_${(Math.random() * 1000).toInt()}"
     }
 }
 
+/**
+ * Базовый класс для сетевых устройств
+ */
+sealed class NetworkDevice {
+    abstract val id: String
+    abstract val name: String
+    abstract var x: Float
+    abstract var y: Float
+    abstract val interfaces: List<NetworkInterface>
+
+    /**
+     * Получить основной интерфейс устройства (первый в списке)
+     */
+    fun getPrimaryInterface(): NetworkInterface? {
+        return interfaces.firstOrNull()
+    }
+
+    /**
+     * Проверить, является ли устройство устройством уровня 2 (коммутатор)
+     */
+    fun isLayer2Device(): Boolean {
+        return this is Switch
+    }
+
+    /**
+     * Получить тип устройства
+     */
+    fun type(): DeviceType {
+        return when (this) {
+            is Computer -> DeviceType.COMPUTER
+            is Switch -> DeviceType.SWITCH
+            is Router -> DeviceType.ROUTER
+            else -> DeviceType.COMPUTER
+        }
+    }
+
+    /**
+     * Получить шлюз по умолчанию
+     */
+    var defaultGateway: String? = null
+}
+
+/**
+ * Компьютер/конечное устройство
+ */
+data class Computer(
+    override val id: String,
+    override val name: String,
+    override var x: Float,
+    override var y: Float,
+    override val interfaces: List<NetworkInterface> = listOf(NetworkInterface.generate(id)),
+    val isActive: Boolean = true
+) : NetworkDevice()
+
+/**
+ * Коммутатор
+ */
+data class Switch(
+    override val id: String,
+    override val name: String,
+    override var x: Float,
+    override var y: Float,
+    val portCount: Int = 8,
+    override val interfaces: List<NetworkInterface> = (1..portCount).map { 
+        NetworkInterface.generate("${id}_$it") 
+    }
+) : NetworkDevice()
+
+/**
+ * Маршрутизатор
+ */
+data class Router(
+    override val id: String,
+    override val name: String,
+    override var x: Float,
+    override var y: Float,
+    val portCount: Int = 4,
+    override val interfaces: List<NetworkInterface> = (1..portCount).map { 
+        NetworkInterface.generate("${id}_$it") 
+    }
+) : NetworkDevice()
+
+/**
+ * Сетевой интерфейс
+ */
+data class NetworkInterface(
+    val id: String,
+    val name: String,
+    val macAddress: String = generateMacAddress(),
+    val ipAddress: String? = null,
+    val subnetMask: String = "255.255.255.0",
+    val vlanId: Int? = null
+) {
+    companion object {
+        fun generate(id: String, name: String = "eth0"): NetworkInterface {
+            return NetworkInterface(
+                id = id,
+                name = name,
+                macAddress = generateMacAddress(),
+                ipAddress = null,
+                subnetMask = "255.255.255.0",
+                vlanId = null
+            )
+        }
+
+        private fun generateMacAddress(): String {
+            val macBytes = ByteArray(6)
+            (0..5).forEach { i ->
+                macBytes[i] = ((Math.random() * 256).toInt()).toByte()
+            }
+            // Устанавливаем бит локально администрируемого адреса
+            macBytes[0] = (macBytes[0].toInt() or 0x02).toByte()
+
+            return macBytes.joinToString(":") { String.format("%02X", it) }
+        }
+    }
+}
+
+/**
+ * Соединение между устройствами
+ */
+data class NetworkConnection(
+    val id: String,
+    val sourceDeviceId: String,
+    val sourceInterfaceId: String,
+    val targetDeviceId: String,
+    val targetInterfaceId: String
+)
